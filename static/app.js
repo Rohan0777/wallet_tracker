@@ -11,10 +11,10 @@ let walletTypeFilter = 'all'; // 'all' or 'mine'
 // ============================================================================
 const I18N = {
   ko: {
-    metaTitle: 'OnChain Detective | 멀티체인 방치 자산 & 다계정 역추적 솔루션',
-    appTitle: 'OnChain Detective',
+    metaTitle: 'Wake Up Crypto | 멀티체인 방치 자산 & 다계정 역추적 솔루션',
+    appTitle: 'Wake Up Crypto',
     appDesc: '다계정 에어드랍 지갑 역추적 & 방치 자산 스캐너',
-    readonlyBadge: '실시간 온체인 안전조회',
+    readonlyBadge: '내 지갑 트랜잭션 조회',
     btnCoffee: '커피 후원',
     themeToggleTitle: '라이트/다크 테마 전환',
     adBanner: '콜드월렛 Ledger & Trezor — 되찾은 자산을 스캠과 드레이너로부터 안전하게 분리 보관하세요',
@@ -88,9 +88,9 @@ const I18N = {
     safetyNotice: '※ 피싱 방지를 위해 최상위 공식 도메인 주소 전체를 표시하며, 사이트 내 서명을 요구하지 않습니다.',
     toastCopied: '지갑 주소가 클립보드에 복사되었습니다.',
     coffeeTitle: '개발자에게 커피 사주기',
-    coffeeSub: '디지털 우주를 떠도는 나의 $2,000를 기리며...',
-    coffeeStory1: '저 역시 여러분과 똑같은 코린이였습니다. 에어드랍 받겠다고 곰돌이(베라체인) 트랜잭션 수백 개씩 찍고, 다계정 만든다고 지갑 쪼개고, 카미노니 팬케이크스왑에 돈을 보냈다가 까먹어서 <strong>피 같은 $2,000</strong>를 날려먹고 밤새 헤매다 직접 만든 온체인 탐정기입니다.',
-    coffeeStory2: '잠자던 자산을 단 $10라도 찾으셨다면, 개발자가 다음 체인을 추적할 수 있도록 따뜻한 커피 한 잔 후원해 주세요!',
+    coffeeSub: '디지털 우주를 떠도는 나의 $1,000를 기리며...',
+    coffeeStory1: '상승장때 이곳저곳 기웃거리다 \'에어드랍\' 이란걸 알게되었습니다. 어떻게 하는지도 잘 모르는데 다계정 해보겠다고 지갑 수십개 만들고 휴대폰 잃어버리고 다음상승장때 까먹고.. 분명히 내 지갑에 돈이 있었는데.. 어디간지 모를 <strong>$1,000</strong> 을 찾으려고 만든 추적기 입니다. (결국 제 $1,000는 끝내 찾지 못했지만요... 🥲)',
+    coffeeStory2: '잠자던 자산을 찾으셨다면, 다음 체인을 추적할 수 있도록 따뜻한 커피 한 잔 후원해 주세요!',
     coffeeCopyBtn: '복사',
     blankProtocol: '— (공란 · 연관 외부 프로토콜 없음)',
     badgeUnified: '4대 체인 · 브릿지 통합조회',
@@ -99,13 +99,17 @@ const I18N = {
     badgeBsc: '실시간 BEP-20 조회',
     badgeTron: '실시간 TRC-20 조회',
     rootWalletLabel: '내 메인 조회 지갑 (Root Address)',
-    rootWalletReason: '현재 스캔 기준이 되는 중심 지갑입니다.'
+    rootWalletReason: '현재 스캔 기준이 되는 중심 지갑입니다.',
+    rateLimitBadge: '스캔 제한: <strong class="text-slate-800 dark:text-slate-200">분당 최대 25회 (약 2.4초당 1회)</strong> · 15분 캐시 보호',
+    scanCooldown: '조회 대기 중... ({sec}초 후 가능)',
+    rateLimitExceeded: '분당 최대 실시간 스캔 횟수(25회)를 초과했습니다. 잠시 후 다시 시도해 주세요.',
+    targetNotice: '<strong>지갑을 잃어버린 코린이 전용 탐색기입니다.</strong> 거래내역(트랜잭션)이 너무 많은 지갑(거래소·봇 등)은 원활한 조회를 위해 검색을 지양해 주세요.'
   },
   en: {
-    metaTitle: 'OnChain Detective | Multi-Chain Airdrop Tracer & Forgotten Asset Scanner',
-    appTitle: 'OnChain Detective',
+    metaTitle: 'Wake Up Crypto | Multi-Chain Airdrop Tracer & Forgotten Asset Scanner',
+    appTitle: 'Wake Up Crypto',
     appDesc: 'Multi-Account Airdrop Tracer & Forgotten Asset Scanner',
-    readonlyBadge: 'Live Read-Only On-Chain',
+    readonlyBadge: 'My Wallet Transactions',
     btnCoffee: 'Buy Coffee',
     themeToggleTitle: 'Toggle Light/Dark Theme',
     adBanner: 'Ledger & Trezor Hardware Wallets — Secure your crypto against phishing drainers',
@@ -179,9 +183,9 @@ const I18N = {
     safetyNotice: '※ Displays full verified top-level domains to prevent phishing. Never requests signatures.',
     toastCopied: 'Wallet address copied to clipboard.',
     coffeeTitle: 'Buy the Developer a Coffee',
-    coffeeSub: 'In memory of my $2,000 lost in the digital universe...',
-    coffeeStory1: 'I was a crypto newbie just like you. Farming airdrops with hundreds of Berachain transactions, splitting multiple wallets, depositing funds into Kamino or PancakeSwap and forgetting about them—losing <strong>a painful $2,000</strong>. After wandering through block explorers all night, I built this On-Chain Detective tool myself.',
-    coffeeStory2: 'If this tool helped you recover even $10 of forgotten crypto, please consider buying a warm cup of coffee to support further chain tracking!',
+    coffeeSub: 'In memory of my $1,000 lost in the digital universe...',
+    coffeeStory1: 'During the bull run, I stumbled upon "airdrops". Without really knowing what I was doing, I created dozens of wallets for multi-accounting, lost my phone, forgot about them by the next cycle... I knew I had money somewhere in my wallets. I built this tracker to recover my missing <strong>$1,000</strong>. (Though in the end, I never did find my $1,000... 🥲)',
+    coffeeStory2: 'If you recovered your forgotten assets, buy the developer a warm cup of coffee to support tracking the next chains!',
     coffeeCopyBtn: 'Copy',
     blankProtocol: '— (Blank · No External Protocol)',
     badgeUnified: '4 Chains + Bridge Scan',
@@ -190,13 +194,17 @@ const I18N = {
     badgeBsc: 'Live BEP-20 Scan',
     badgeTron: 'Live TRC-20 Scan',
     rootWalletLabel: 'Main Scan Wallet (Root Address)',
-    rootWalletReason: 'Root central wallet for the current scan.'
+    rootWalletReason: 'Root central wallet for the current scan.',
+    rateLimitBadge: 'Scan Rate: <strong class="text-slate-800 dark:text-slate-200">Max 25/min (~1 per 2.4s)</strong> · 15m Cache',
+    scanCooldown: 'Cooldown... (wait {sec}s)',
+    rateLimitExceeded: 'Scan limit exceeded (max 25 requests/min). Please try again shortly.',
+    targetNotice: '<strong>Dedicated scanner for crypto beginners looking for lost wallets.</strong> Please avoid scanning wallets with heavy transaction volume (exchanges, bots, etc.) to ensure optimal node performance.'
   },
   zh: {
-    metaTitle: 'OnChain Detective | 多链沉睡资产与多账号逆向追踪工具',
-    appTitle: 'OnChain Detective',
+    metaTitle: 'Wake Up Crypto | 多链沉睡资产与多账号逆向追踪工具',
+    appTitle: 'Wake Up Crypto',
     appDesc: '空投多账号逆向追踪 & 链上滞留资产扫描器',
-    readonlyBadge: '实时链上只读安全查询',
+    readonlyBadge: '查询我的钱包交易',
     btnCoffee: '赞助咖啡',
     themeToggleTitle: '切换亮色/暗色主题',
     adBanner: 'Ledger & Trezor 硬件冷钱包 — 彻底隔离钓鱼合约与盗币风险，安全存放找回的资产',
@@ -270,9 +278,9 @@ const I18N = {
     safetyNotice: '※ 完整显示官方顶级域名以防钓鱼，绝不在站内请求任何签名。',
     toastCopied: '钱包地址已复制到剪贴板。',
     coffeeTitle: '请开发者喝杯咖啡',
-    coffeeSub: '纪念我遗失在数字宇宙中的 $2,000...',
-    coffeeStory1: '我也曾和大家一样是个加密小白。为了撸空投刷了几百笔 Berachain 交易，分散搞多账号，往 Kamino、PancakeSwap 质押转账后转头就忘，白白损失了<strong>血汗钱 $2,000</strong>。在区块链浏览器里通宵翻找后，我亲手打造了这个链上侦探工具。',
-    coffeeStory2: '如果您通过本工具找回了哪怕 $10 的沉睡资产，欢迎请开发者喝杯热咖啡，支持我们接入追踪更多公链！',
+    coffeeSub: '纪念我遗失在数字宇宙中的 $1,000...',
+    coffeeStory1: '在牛市狂潮中，我了解到了“空投”。当时连原理都没搞懂，就兴冲冲为了搞多账号建了几十个钱包，后来手机丢了、到下一个牛市全忘了……我明明记得钱包里是有钱的，为了找回那不知所踪的 <strong>$1,000</strong>，我亲手打造了这个追查工具。（不过遗憾的是，我那 $1,000 最终还是没能找回来…… 🥲）',
+    coffeeStory2: '如果您找回了沉睡的资产，欢迎请开发者喝杯暖心咖啡，支持我们接入追踪更多公链！',
     coffeeCopyBtn: '复制',
     blankProtocol: '— (空白 · 无关联外部协议)',
     badgeUnified: '4大公链 · 跨链桥整合查询',
@@ -281,13 +289,17 @@ const I18N = {
     badgeBsc: '实时 BEP-20 查询',
     badgeTron: '实时 TRC-20 查询',
     rootWalletLabel: '主查询钱包 (Root Address)',
-    rootWalletReason: '当前链上扫描分析的基准核心钱包。'
+    rootWalletReason: '当前链上扫描分析的基准核心钱包。',
+    rateLimitBadge: '扫描限制: <strong class="text-slate-800 dark:text-slate-200">每分钟最多25次 (约2.4秒1次)</strong> · 15分钟缓存',
+    scanCooldown: '冷却中... (请等待 {sec} 秒)',
+    rateLimitExceeded: '超出每分钟最大扫描次数 (25次)，请稍后再试。',
+    targetNotice: '<strong>专为遗失钱包的加密小白打造的寻宝工具。</strong> 为确保节点顺畅查询，请尽量避免查询交易量极大（交易所、做市机器人等）的地址。'
   },
   ja: {
-    metaTitle: 'OnChain Detective | マルチチェーン放置資産＆サブ垢逆追跡',
-    appTitle: 'OnChain Detective',
+    metaTitle: 'Wake Up Crypto | マルチチェーン放置資産＆サブ垢逆追跡',
+    appTitle: 'Wake Up Crypto',
     appDesc: 'エアドロ周回サブ垢追跡 & 放置資産スキャナー',
-    readonlyBadge: 'リアルタイム安全照会',
+    readonlyBadge: 'ウォレット取引履歴照会',
     btnCoffee: 'コーヒー支援',
     themeToggleTitle: 'ライト/ダークテーマ切替',
     adBanner: 'Ledger & Trezor ハードウェアウォレット — 取り戻した資産をフィッシング詐欺から完全分離保護',
@@ -361,9 +373,9 @@ const I18N = {
     safetyNotice: '※ フィッシング防止のため公式ドメイン全体を表示し、署名は一切要求しません。',
     toastCopied: 'アドレスをクリップボードにコピーしました。',
     coffeeTitle: '開発者にコーヒーをおごる',
-    coffeeSub: 'デジタル宇宙を彷徨う私の $2,000 を偲んで...',
-    coffeeStory1: '私も皆様と同じクリプト初心者でした。エアドロのためにBerachainのトランザクションを数百回刻み、サブ垢をいくつも作り、KaminoやPancakeSwapに預けたまま忘れて<strong>血のような $2,000</strong>を紛失。夜通しエクスプローラーを彷徨った末に自作したオンチェーン探偵ツールです。',
-    coffeeStory2: 'もし眠っていた資産を $10 でも見つけられたなら、次のチェーン追跡開発のために温かいコーヒー1杯のご支援をお願いします！',
+    coffeeSub: 'デジタル宇宙を彷徨う私の $1,000 を偲んで...',
+    coffeeStory1: '強気相場の頃にあちこち覗いていて「エアドロ」というものを知りました。仕組みもよく分からないまま、複垢をやろうとウォレットを何十個も作り、スマホを失くし、次のバブル期にはすっかり忘れ… 自分の財布にお金があったはずなのに。行方不明になった <strong>$1,000</strong> を見つけるために作った追跡ツールです。（結局、私の $1,000 は最後まで見つかりませんでしたが… 🥲）',
+    coffeeStory2: '眠っていた資産を見つけられたなら、次のチェーン追跡開発のために温かいコーヒー1杯のご支援をお願いします！',
     coffeeCopyBtn: 'コピー',
     blankProtocol: '— (空欄 · 外部プロトコルなし)',
     badgeUnified: '4大チェーン・ブリッジ統合照会',
@@ -372,13 +384,17 @@ const I18N = {
     badgeBsc: 'リアルタイム BEP-20 照会',
     badgeTron: 'リアルタイム TRC-20 照会',
     rootWalletLabel: 'メイン照会ウォレット (Root Address)',
-    rootWalletReason: '現在のスキャン基準となる中心ウォレットです。'
+    rootWalletReason: '現在のスキャン基準となる中心ウォレットです。',
+    rateLimitBadge: 'スキャン制限: <strong class="text-slate-800 dark:text-slate-200">毎分最大25回 (約2.4秒に1回)</strong> · 15分キャッシュ',
+    scanCooldown: '待機中... ({sec}秒後に再試行可能)',
+    rateLimitExceeded: '1分あたりの最大スキャン回数(25回)を超過しました。しばらくしてから再試行してください。',
+    targetNotice: '<strong>ウォレットを紛失したクリプト初心者のための専用探索ツールです。</strong> 円滑な照会のため、取引数が極めて多いウォレット（取引所・ボット等）の検索はお控えください。'
   },
   es: {
-    metaTitle: 'OnChain Detective | Rastreo Multicadena de Airdrops y Activos Olvidados',
-    appTitle: 'OnChain Detective',
+    metaTitle: 'Wake Up Crypto | Rastreo Multicadena de Airdrops y Activos Olvidados',
+    appTitle: 'Wake Up Crypto',
     appDesc: 'Rastreador de Multicuentas Airdrop y Activos On-Chain',
-    readonlyBadge: 'Consulta On-Chain Segura',
+    readonlyBadge: 'Consultar Transacciones',
     btnCoffee: 'Donar Café',
     themeToggleTitle: 'Cambiar Tema Claro/Oscuro',
     adBanner: 'Billeteras Frías Ledger & Trezor — Protege tus activos contra estafas y drenadores',
@@ -452,9 +468,9 @@ const I18N = {
     safetyNotice: '※ Muestra el dominio oficial completo para evitar phishing. Nunca solicita firmas.',
     toastCopied: 'Dirección copiada al portapapeles.',
     coffeeTitle: 'Invítame un Café',
-    coffeeSub: 'En memoria de mis $2,000 perdidos en el universo digital...',
-    coffeeStory1: 'Yo también fui un principiante en cripto como ustedes. Hice cientos de transacciones en Berachain por airdrops, dividí múltiples billeteras y deposité en Kamino o PancakeSwap para luego olvidarlo, perdiendo <strong>$2,000 dolorosos</strong>. Tras pasar noches buscando en exploradores de bloques, creé esta herramienta On-Chain Detective.',
-    coffeeStory2: 'Si esta herramienta te ayudó a recuperar aunque sea $10 de cripto olvidado, ¡invítale un café al desarrollador para apoyar el rastreo de más cadenas!',
+    coffeeSub: 'En memoria de mis $1,000 perdidos en el universo digital...',
+    coffeeStory1: 'Durante el mercado alcista, descubrí los "airdrops". Sin entender bien cómo funcionaba, creé docenas de billeteras para multicuentas, perdí mi teléfono y lo olvidé para el siguiente ciclo... Sabía con certeza que tenía fondos. Creé este rastreador para recuperar mis <strong>$1,000</strong> perdidos. (Aunque al final, nunca pude recuperar mis $1,000... 🥲)',
+    coffeeStory2: '¡Si recuperaste tus activos olvidados, invítale un café al desarrollador para apoyar el rastreo de nuevas cadenas!',
     coffeeCopyBtn: 'Copiar',
     blankProtocol: '— (En blanco · Sin protocolo externo)',
     badgeUnified: '4 Cadenas y Puentes',
@@ -463,13 +479,17 @@ const I18N = {
     badgeBsc: 'BEP-20 en vivo',
     badgeTron: 'TRC-20 en vivo',
     rootWalletLabel: 'Billetera Principal (Dirección Raíz)',
-    rootWalletReason: 'Billetera central utilizada como base para el escaneo.'
+    rootWalletReason: 'Billetera central utilizada como base para el escaneo.',
+    rateLimitBadge: 'Límite de escaneo: <strong class="text-slate-800 dark:text-slate-200">Máx 25/min (~1 por 2.4s)</strong> · Caché 15 min',
+    scanCooldown: 'Espera... (disponible en {sec}s)',
+    rateLimitExceeded: 'Límite por minuto excedido (máx 25). Inténtelo de nuevo en unos segundos.',
+    targetNotice: '<strong>Explorador exclusivo para principiantes que buscan billeteras perdidas.</strong> Por favor, evite consultar billeteras con volumen masivo de transacciones (exchanges, bots) para asegurar consultas fluidas.'
   },
   ru: {
-    metaTitle: 'OnChain Detective | Мультичейн-поиск мультиаккаунтов и забытых активов',
-    appTitle: 'OnChain Detective',
+    metaTitle: 'Wake Up Crypto | Мультичейн-поиск мультиаккаунтов и забытых активов',
+    appTitle: 'Wake Up Crypto',
     appDesc: 'Поиск мультиаккаунтов и проверка ончейн-активов',
-    readonlyBadge: 'Безопасный ончейн-запрос',
+    readonlyBadge: 'Проверка транзакций кошелька',
     btnCoffee: 'Купить кофе',
     themeToggleTitle: 'Переключить тему',
     adBanner: 'Аппаратные кошельки Ledger и Trezor — Надежная защита активов от скама и дрейнеров',
@@ -543,9 +563,9 @@ const I18N = {
     safetyNotice: '※ Отображается полный официальный домен. Подпись транзакций никогда не запрашивается.',
     toastCopied: 'Адрес скопирован в буфер обмена.',
     coffeeTitle: 'Купить кофе разработчику',
-    coffeeSub: 'В память о моих $2,000, затерянных в цифровой вселенной...',
-    coffeeStory1: 'Я был таким же новичком в крипте, как и вы. Фармил аирдропы сотнями транзакций в Berachain, дробил кошельки на мультиаккаунты, закидывал средства в Kamino или PancakeSwap и забывал о них, потеряв <strong>целых $2,000</strong>. Проведя бессонные ночи в блокчейн-эксплорерах, я создал этот On-Chain Detective.',
-    coffeeStory2: 'Если этот инструмент помог вам вернуть хотя бы $10 забытых средств, поддержите разработчика чашкой горячего кофе!',
+    coffeeSub: 'В память о моих $1,000, затерянных в цифровой вселенной...',
+    coffeeStory1: 'Во время бычьего рынка я узнал про «аирдропы». Не особо понимая, как всё устроено, создал десятки кошельков для мультиаккаунтов, потерял телефон, а к следующему циклу всё забыл... Но я точно помнил, что на кошельках были деньги. Я создал этот трекер, чтобы найти пропавшие <strong>$1,000</strong>. (Хотя в итоге свои $1,000 я так и не нашел... 🥲)',
+    coffeeStory2: 'Если вы нашли свои забытые активы, поддержите разработчика чашкой горячего кофе для добавления новых сетей!',
     coffeeCopyBtn: 'Копировать',
     blankProtocol: '— (Пусто · Нет внешнего протокола)',
     badgeUnified: '4 сети и мосты',
@@ -554,7 +574,11 @@ const I18N = {
     badgeBsc: 'BEP-20 онлайн',
     badgeTron: 'TRC-20 онлайн',
     rootWalletLabel: 'Основной кошелек (Root Address)',
-    rootWalletReason: 'Основной кошелек для текущего сканирования.'
+    rootWalletReason: 'Основной кошелек для текущего сканирования.',
+    rateLimitBadge: 'Лимит запросов: <strong class="text-slate-800 dark:text-slate-200">макс 25/мин (~1 раз в 2.4 сек)</strong> · Кэш 15 мин',
+    scanCooldown: 'Ожидание... (доступно через {sec}с)',
+    rateLimitExceeded: 'Превышен лимит запросов в минуту (макс 25). Повторите попытку позже.',
+    targetNotice: '<strong>Сканер для новичков, потерявших кошельки.</strong> Пожалуйста, избегайте сканирования адресов с огромным количеством транзакций (биржи, боты) для стабильной работы нод.'
   }
 };
 
@@ -1389,6 +1413,10 @@ function switchLanguage(lang) {
   document.getElementById('themeToggle').title = dict.themeToggleTitle;
   document.getElementById('txt-ad-banner').innerText = dict.adBanner;
   document.getElementById('txt-ad-cta').innerText = dict.adCta;
+  const targetNoticeEl = document.getElementById('txt-target-notice');
+  if (targetNoticeEl && dict.targetNotice) {
+    targetNoticeEl.innerHTML = dict.targetNotice;
+  }
 
   // Chain tabs
   document.getElementById('txt-tab-unified').innerText = dict.tabUnified;
@@ -1405,6 +1433,10 @@ function switchLanguage(lang) {
   const cfg = CHAIN_PRESETS[currentChain];
   if (cfg && cfg.badgeKey) {
     document.getElementById('presetBadge').innerText = dict[cfg.badgeKey] || dict.badgeUnified;
+  }
+  const rateLimitBadgeEl = document.getElementById('txt-rate-limit-badge');
+  if (rateLimitBadgeEl && dict.rateLimitBadge) {
+    rateLimitBadgeEl.innerHTML = dict.rateLimitBadge;
   }
 
   // Scanning & Mindmap
@@ -1485,9 +1517,88 @@ function switchChain(chain) {
   loadAnalysis(chain, cfg.defaultAddress);
 }
 
-// Load Real On-Chain Analysis Data
-async function loadAnalysis(chain, address) {
+// ----------------------------------------------------------------------------
+// Client-side Memory Cache (Instant Tab Switching without Network Re-query)
+// ----------------------------------------------------------------------------
+const clientAnalysisCache = {};
+
+// ----------------------------------------------------------------------------
+// Rate Limit & Cooldown Manager (Max 25 queries / min = ~2.4s cooldown)
+// ----------------------------------------------------------------------------
+let isScanning = false;
+let cooldownTimerInterval = null;
+const SCAN_COOLDOWN_SECONDS = 2.4; // 60s / 25 queries = ~2.4s
+let cooldownRemaining = 0;
+
+function startCooldown(durationSec = SCAN_COOLDOWN_SECONDS) {
+  const indicator = document.getElementById('cooldownIndicator');
+  const timerText = document.getElementById('cooldownTimerText');
+  const searchBtn = document.getElementById('searchBtn');
+
+  if (cooldownTimerInterval) {
+    clearInterval(cooldownTimerInterval);
+  }
+
+  cooldownRemaining = durationSec;
+  if (indicator && timerText) {
+    indicator.classList.remove('hidden');
+    timerText.innerText = `${cooldownRemaining.toFixed(1)}s`;
+  }
+
+  if (searchBtn) {
+    searchBtn.disabled = true;
+    searchBtn.classList.add('opacity-70', 'cursor-not-allowed');
+  }
+
+  const stepMs = 100;
+  cooldownTimerInterval = setInterval(() => {
+    cooldownRemaining -= stepMs / 1000;
+    if (cooldownRemaining <= 0) {
+      clearInterval(cooldownTimerInterval);
+      cooldownTimerInterval = null;
+      cooldownRemaining = 0;
+      if (indicator) indicator.classList.add('hidden');
+      if (searchBtn && !isScanning) {
+        searchBtn.disabled = false;
+        searchBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+      }
+    } else {
+      if (timerText) timerText.innerText = `${cooldownRemaining.toFixed(1)}s`;
+    }
+  }, stepMs);
+}
+
+// Load Real On-Chain Analysis Data (Instant render on cache hit!)
+async function loadAnalysis(chain, address, forceRefresh = false) {
   const dict = I18N[currentLanguage] || I18N.ko;
+  const normalizedChain = (chain || 'solana').toLowerCase();
+  const normalizedAddr = (address || '').trim().toLowerCase();
+  const cacheKey = `${normalizedChain}:${normalizedAddr}`;
+
+  // Instant Cache Hit: Skip network fetch & cooldown, render immediately!
+  if (!forceRefresh && clientAnalysisCache[cacheKey]) {
+    const cachedData = clientAnalysisCache[cacheKey];
+    currentData = cachedData;
+    renderDashboard(cachedData);
+    renderGraph(cachedData.graph_data);
+    renderWalletsList(cachedData.classified_wallets || []);
+    renderRecoveryTargets(cachedData.recovery_targets || [], cachedData.has_external_protocol);
+    initIcons();
+    return;
+  }
+
+  if (isScanning) {
+    showToast(dict.scanningStatus || '현재 온체인 조회가 진행 중입니다.');
+    return;
+  }
+  if (cooldownRemaining > 0) {
+    showToast(dict.scanCooldown.replace('{sec}', cooldownRemaining.toFixed(1)));
+    return;
+  }
+
+  isScanning = true;
+  startCooldown(SCAN_COOLDOWN_SECONDS);
+
   const progressContainer = document.getElementById('progressContainer');
   const progressBar = document.getElementById('progressBar');
   const progressPercent = document.getElementById('progressPercent');
@@ -1510,7 +1621,20 @@ async function loadAnalysis(chain, address) {
   try {
     const res = await fetch(`/api/analysis?chain=${encodeURIComponent(chain)}&address=${encodeURIComponent(address)}`);
     const data = await res.json();
+
+    if (!res.ok) {
+      if (res.status === 429) {
+        showToast(data.detail || dict.rateLimitExceeded);
+      } else {
+        showToast(data.detail || '온체인 스캔 중 오류가 발생했습니다.');
+      }
+      progressContainer.classList.add('hidden');
+      return;
+    }
+
     currentData = data;
+    // Save to client memory cache
+    clientAnalysisCache[cacheKey] = data;
 
     setTimeout(() => {
       progressBar.style.width = '100%';
@@ -1530,8 +1654,15 @@ async function loadAnalysis(chain, address) {
 
   } catch (err) {
     console.error(err);
+    showToast(dict.rateLimitExceeded || '온체인 스캔 요청에 실패했습니다.');
     progressContainer.classList.add('hidden');
   } finally {
+    isScanning = false;
+    const searchBtn = document.getElementById('searchBtn');
+    if (searchBtn && cooldownRemaining <= 0) {
+      searchBtn.disabled = false;
+      searchBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+    }
     initIcons();
   }
 }
@@ -2077,11 +2208,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('searchBtn').addEventListener('click', () => {
     const addr = document.getElementById('addressInput').value.trim();
-    loadAnalysis(currentChain, addr);
+    loadAnalysis(currentChain, addr, true);
   });
   document.getElementById('addressInput').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
-      loadAnalysis(currentChain, e.target.value.trim());
+      loadAnalysis(currentChain, e.target.value.trim(), true);
     }
   });
 

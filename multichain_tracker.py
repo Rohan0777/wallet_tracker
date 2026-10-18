@@ -420,17 +420,16 @@ CHAIN_INFO = {
 }
 
 DONATION_INFO = {
-    'title': '디지털 우주를 떠도는 나의 $2,000를 기리며...',
+    'title': '디지털 우주를 떠도는 나의 $1,000를 기리며...',
     'story': (
-        "안녕하세요! 저 역시 여러분과 똑같은 완전 코린이였습니다. "
-        "어디서 본 건 있어서 에어드랍 받겠다고 곰돌이(베라체인) 트랜잭션 수백 개씩 찍고, "
-        "다계정 만든다고 지갑 쪼개고, 여기저기 멀티체인으로 돈 보냈다가 까먹어서 $2,000를 날려먹고 "
-        "밤새 헤매다 열받아서 직접 만든 코린이 전용 온체인 탐정기입니다.\n\n"
-        "잠자던 자산을 단 $10라도 찾으셨다면, 개발자가 다음 체인을 추적할 수 있도록 따뜻한 커피 한 잔 사주세요!"
+        "상승장때 이곳저곳 기웃거리다 '에어드랍' 이란걸 알게되었습니다. "
+        "어떻게 하는지도 잘 모르는데 다계정 해보겠다고 지갑 수십개 만들고 휴대폰 잃어버리고 다음상승장때 까먹고.. "
+        "분명히 내 지갑에 돈이 있었는데.. 어디간지 모를 $1,000 을 찾으려고 만든 추적기 입니다. "
+        "(결국 제 $1,000는 끝내 찾지 못했지만요... 🥲)\n\n"
+        "잠자던 자산을 찾으셨다면, 다음 체인을 추적할 수 있도록 따뜻한 커피 한 잔 후원해 주세요!"
     ),
     'addresses': {
         'sol': {'chain': 'Solana (SOL)', 'address': PRESET_SOL_ADDRESS, 'symbol': 'SOL', 'explorer': f'https://solscan.io/account/{PRESET_SOL_ADDRESS}'},
-        'eth': {'chain': 'Ethereum (ETH)', 'address': PRESET_EVM_ADDRESS, 'symbol': 'ETH', 'explorer': f'https://etherscan.io/address/{PRESET_EVM_ADDRESS}'},
         'bnb': {'chain': 'BNB Smart Chain (BEP-20)', 'address': PRESET_EVM_ADDRESS, 'symbol': 'BNB', 'explorer': f'https://bscscan.com/address/{PRESET_EVM_ADDRESS}'},
         'tron': {'chain': 'Tron (TRC-20)', 'address': PRESET_TRON_ADDRESS, 'symbol': 'TRX / USDT', 'explorer': f'https://tronscan.org/#/address/{PRESET_TRON_ADDRESS}'}
     }

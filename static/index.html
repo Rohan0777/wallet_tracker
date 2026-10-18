@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>OnChain Detective | 멀티체인 방치 자산 & 다계정 역추적 솔루션</title>
+  <title>Wake Up Crypto | 멀티체인 방치 자산 & 다계정 역추적 솔루션</title>
   
   <!-- Authentic Pretendard CDN + Inter & JetBrains Mono -->
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
@@ -218,10 +218,10 @@
         </div>
         <div>
           <div class="flex items-center gap-2">
-            <h1 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-tight" id="txt-app-title">OnChain Detective</h1>
+            <h1 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-tight" id="txt-app-title">Wake Up Crypto</h1>
             <span class="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-semibold border border-emerald-500/30 flex items-center gap-1">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              <span id="txt-readonly-badge">실시간 온체인 안전조회</span>
+              <span id="txt-readonly-badge">내 지갑 트랜잭션 조회</span>
             </span>
           </div>
           <p class="text-[11px] text-slate-600 dark:text-slate-400" id="txt-app-desc">다계정 에어드랍 지갑 역추적 & 방치 자산 스캐너</p>
@@ -262,6 +262,16 @@
           <span id="txt-ad-cta">공식 스토어</span>
           <i data-lucide="arrow-up-right" class="w-3 h-3"></i>
         </a>
+      </div>
+    </div>
+
+    <!-- Target Audience Notice Bar (Korin Only) -->
+    <div class="px-4 sm:px-6 pt-2">
+      <div class="panel-window w-full rounded-xl px-3.5 py-2 flex items-center gap-2.5 text-xs border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200">
+        <i data-lucide="alert-circle" class="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0"></i>
+        <p class="text-[11.5px] leading-snug" id="txt-target-notice">
+          <strong>지갑을 잃어버린 코린이 전용 탐색기입니다.</strong> 거래내역(트랜잭션)이 너무 많은 지갑(거래소·봇 등)은 원활한 조회를 위해 검색을 지양해 주세요.
+        </p>
       </div>
     </div>
 
@@ -381,6 +391,18 @@
               <span id="presetLabel">BQ4x7ypg...Df7H</span>
               <span id="presetBadge" class="text-[10px] font-sans px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-800 dark:text-indigo-300 border border-indigo-500/30">실제 온체인 조회</span>
             </button>
+          </div>
+
+          <!-- Safe Scan Rate Limit & Cooldown Bar -->
+          <div class="flex items-center justify-between text-[10.5px] px-0.5 pt-2 border-t border-slate-300/60 dark:border-white/[0.06] text-slate-600 dark:text-slate-400">
+            <div class="flex items-center gap-1.5 min-w-0">
+              <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0"></i>
+              <span id="txt-rate-limit-badge" class="truncate">스캔 제한: <strong class="text-slate-800 dark:text-slate-200">분당 최대 25회 (약 2.4초당 1회)</strong> · 15분 캐시 보호</span>
+            </div>
+            <div id="cooldownIndicator" class="hidden text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1 text-[10.5px] shrink-0">
+              <i data-lucide="timer" class="w-3.5 h-3.5 animate-spin"></i>
+              <span id="cooldownTimerText"></span>
+            </div>
           </div>
         </section>
 
@@ -622,16 +644,16 @@
           </div>
           <div>
             <h2 class="text-sm font-bold text-slate-900 dark:text-white" id="txt-coffee-modal-title">개발자에게 커피 사주기</h2>
-            <p class="text-[11px] text-amber-700 dark:text-amber-400 font-semibold" id="txt-coffee-modal-sub">디지털 우주를 떠도는 나의 $2,000를 기리며...</p>
+            <p class="text-[11px] text-amber-700 dark:text-amber-400 font-semibold" id="txt-coffee-modal-sub">디지털 우주를 떠도는 나의 $1,000를 기리며...</p>
           </div>
         </div>
 
         <div class="panel-window rounded-xl p-3.5 text-xs text-slate-800 dark:text-slate-300 leading-relaxed space-y-2">
           <p id="txt-coffee-modal-story1">
-            저 역시 여러분과 똑같은 코린이였습니다. 에어드랍 받겠다고 곰돌이(베라체인) 트랜잭션 수백 개씩 찍고, 다계정 만든다고 지갑 쪼개고, 카미노니 팬케이크스왑에 돈을 보냈다가 까먹어서 <strong>피 같은 $2,000</strong>를 날려먹고 밤새 헤매다 직접 만든 온체인 탐정기입니다.
+            상승장때 이곳저곳 기웃거리다 '에어드랍' 이란걸 알게되었습니다. 어떻게 하는지도 잘 모르는데 다계정 해보겠다고 지갑 수십개 만들고 휴대폰 잃어버리고 다음상승장때 까먹고.. 분명히 내 지갑에 돈이 있었는데.. 어디간지 모를 <strong>$1,000</strong> 을 찾으려고 만든 추적기 입니다. (결국 제 $1,000는 끝내 찾지 못했지만요... 🥲)
           </p>
           <p class="text-indigo-700 dark:text-indigo-300 font-semibold" id="txt-coffee-modal-story2">
-            잠자던 자산을 단 $10라도 찾으셨다면, 개발자가 다음 체인을 추적할 수 있도록 따뜻한 커피 한 잔 후원해 주세요!
+            잠자던 자산을 찾으셨다면, 다음 체인을 추적할 수 있도록 따뜻한 커피 한 잔 후원해 주세요!
           </p>
         </div>
 
@@ -642,16 +664,6 @@
               <span class="font-mono text-[11px] text-slate-900 dark:text-slate-200 truncate block">BQ4x7ypgaqW7tFZwJadmuxbiuzvy3mk26i9WFo7hDf7H</span>
             </div>
             <button onclick="copyToClipboard('BQ4x7ypgaqW7tFZwJadmuxbiuzvy3mk26i9WFo7hDf7H')" class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[11px] font-semibold transition shrink-0">
-              <span class="txt-coffee-copy-btn">복사</span>
-            </button>
-          </div>
-
-          <div class="inner-box rounded-xl p-2.5 flex items-center justify-between gap-2">
-            <div class="min-w-0">
-              <span class="text-[10px] text-blue-600 dark:text-blue-400 font-bold block">Ethereum (ETH)</span>
-              <span class="font-mono text-[11px] text-slate-900 dark:text-slate-200 truncate block">0xb107205E2f9D89E85fb7d6311FFD802049Ffe56e</span>
-            </div>
-            <button onclick="copyToClipboard('0xb107205E2f9D89E85fb7d6311FFD802049Ffe56e')" class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[11px] font-semibold transition shrink-0">
               <span class="txt-coffee-copy-btn">복사</span>
             </button>
           </div>

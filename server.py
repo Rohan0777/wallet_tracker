@@ -32,7 +32,7 @@ L2_CACHE_FILE = os.path.join(BASE_DIR, "data_cache", "l2_analysis_cache.json")
 os.makedirs(os.path.dirname(L2_CACHE_FILE), exist_ok=True)
 
 app = FastAPI(
-    title="OnChain Detective | Scalable Multi-Chain Asset Scanner",
+    title="Wake Up Crypto | Scalable Multi-Chain Asset Scanner",
     version="6.0.0"
 )
 
