@@ -1,10 +1,19 @@
-// OnChain Detective App JS (v8 - Comprehensive 6-Language Localization & Dynamic On-Chain Text Engine)
+// OnChain Detective App JS (v9.1 - Related-Wallet Pivot Detective, Relation Score & Recovery Funnel Release)
 
 let currentChain = 'unified';
 let currentData = null;
 let currentLanguage = 'ko';
 let minUsdThreshold = 0;
 let walletTypeFilter = 'all'; // 'all' or 'mine'
+let pivotTrail = []; // [{ chain, address, label }]
+let activeSheetWallet = null;
+let partnerAdConfig = {
+  affiliate_url: 'https://shop.ledger.com',
+  exchange_referral_url: 'https://accounts.binance.com/register',
+  okx_referral_url: 'https://www.okx.com/join',
+  bybit_referral_url: 'https://www.bybit.com/invite',
+  partners: []
+};
 
 // ============================================================================
 // 1. STATIC UI TRANSLATION DICTIONARIES (ko, en, zh, ja, es, ru)
@@ -103,6 +112,7 @@ const I18N = {
     rateLimitBadge: '스캔 제한: <strong class="text-slate-800 dark:text-slate-200">분당 최대 25회 (약 2.4초당 1회)</strong> · 15분 캐시 보호',
     scanCooldown: '조회 대기 중... ({sec}초 후 가능)',
     rateLimitExceeded: '분당 최대 실시간 스캔 횟수(25회)를 초과했습니다. 잠시 후 다시 시도해 주세요.',
+    networkError: '네트워크 또는 서버 응답 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
     targetNotice: '<strong>지갑을 잃어버린 코린이 전용 탐색기입니다.</strong> 거래내역(트랜잭션)이 너무 많은 지갑(거래소·봇 등)은 원활한 조회를 위해 검색을 지양해 주세요.'
   },
   en: {
@@ -198,6 +208,7 @@ const I18N = {
     rateLimitBadge: 'Scan Rate: <strong class="text-slate-800 dark:text-slate-200">Max 25/min (~1 per 2.4s)</strong> · 15m Cache',
     scanCooldown: 'Cooldown... (wait {sec}s)',
     rateLimitExceeded: 'Scan limit exceeded (max 25 requests/min). Please try again shortly.',
+    networkError: 'Network or server error occurred. Please try again shortly.',
     targetNotice: '<strong>Dedicated scanner for crypto beginners looking for lost wallets.</strong> Please avoid scanning wallets with heavy transaction volume (exchanges, bots, etc.) to ensure optimal node performance.'
   },
   zh: {
@@ -293,6 +304,7 @@ const I18N = {
     rateLimitBadge: '扫描限制: <strong class="text-slate-800 dark:text-slate-200">每分钟最多25次 (约2.4秒1次)</strong> · 15分钟缓存',
     scanCooldown: '冷却中... (请等待 {sec} 秒)',
     rateLimitExceeded: '超出每分钟最大扫描次数 (25次)，请稍后再试。',
+    networkError: '网络或服务器错误，请稍后再试。',
     targetNotice: '<strong>专为遗失钱包的加密小白打造的寻宝工具。</strong> 为确保节点顺畅查询，请尽量避免查询交易量极大（交易所、做市机器人等）的地址。'
   },
   ja: {
@@ -388,6 +400,7 @@ const I18N = {
     rateLimitBadge: 'スキャン制限: <strong class="text-slate-800 dark:text-slate-200">毎分最大25回 (約2.4秒に1回)</strong> · 15分キャッシュ',
     scanCooldown: '待機中... ({sec}秒後に再試行可能)',
     rateLimitExceeded: '1分あたりの最大スキャン回数(25回)を超過しました。しばらくしてから再試行してください。',
+    networkError: 'ネットワークまたはサーバーエラーが発生しました。しばらくしてから再試行してください。',
     targetNotice: '<strong>ウォレットを紛失したクリプト初心者のための専用探索ツールです。</strong> 円滑な照会のため、取引数が極めて多いウォレット（取引所・ボット等）の検索はお控えください。'
   },
   es: {
@@ -483,6 +496,7 @@ const I18N = {
     rateLimitBadge: 'Límite de escaneo: <strong class="text-slate-800 dark:text-slate-200">Máx 25/min (~1 por 2.4s)</strong> · Caché 15 min',
     scanCooldown: 'Espera... (disponible en {sec}s)',
     rateLimitExceeded: 'Límite por minuto excedido (máx 25). Inténtelo de nuevo en unos segundos.',
+    networkError: 'Error de red o servidor. Por favor, inténtelo de nuevo en unos segundos.',
     targetNotice: '<strong>Explorador exclusivo para principiantes que buscan billeteras perdidas.</strong> Por favor, evite consultar billeteras con volumen masivo de transacciones (exchanges, bots) para asegurar consultas fluidas.'
   },
   ru: {
@@ -578,6 +592,7 @@ const I18N = {
     rateLimitBadge: 'Лимит запросов: <strong class="text-slate-800 dark:text-slate-200">макс 25/мин (~1 раз в 2.4 сек)</strong> · Кэш 15 мин',
     scanCooldown: 'Ожидание... (доступно через {sec}с)',
     rateLimitExceeded: 'Превышен лимит запросов в минуту (макс 25). Повторите попытку позже.',
+    networkError: 'Ошибка сети или сервера. Пожалуйста, повторите попытку позже.',
     targetNotice: '<strong>Сканер для новичков, потерявших кошельки.</strong> Пожалуйста, избегайте сканирования адресов с огромным количеством транзакций (биржи, боты) для стабильной работы нод.'
   }
 };
@@ -1343,6 +1358,21 @@ const CHAIN_PRESETS = {
   }
 };
 
+// ----------------------------------------------------------------------------
+// XSS Defense-in-Depth: HTML Entity Escaping & HTTPS Protocol Whitelist
+// ----------------------------------------------------------------------------
+const esc = s => String(s ?? '').replace(/[&<>"']/g,
+  c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function safeHttpsUrl(rawUrl, fallback = '#') {
+  try {
+    const parsed = new URL(String(rawUrl ?? '').trim());
+    return parsed.protocol === 'https:' ? parsed.href : fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
+
 function initIcons() {
   if (window.lucide) {
     window.lucide.createIcons();
@@ -1490,8 +1520,74 @@ function switchLanguage(lang) {
   initIcons();
 }
 
+// ----------------------------------------------------------------------------
+// Client-side LRU Memory Cache with TTL (15-Minute Expiry matching Server) - v8.5
+// ----------------------------------------------------------------------------
+const CACHE_NAMESPACE = 'analysis-cache-v4';
+const CLIENT_CACHE_TTL_MS = 15 * 60 * 1000;
+const MAX_CLIENT_CACHE = 50;
+const clientAnalysisCache = new Map(); // key -> { data, ts }
+
+const EVM_CHAINS = new Set(['ethereum', 'bsc']);
+
+function normalizeAddress(chain, address) {
+  const value = String(address ?? '').trim();
+  const c = String(chain ?? '').trim().toLowerCase();
+  return EVM_CHAINS.has(c) ? value.toLowerCase() : value;
+}
+
+function makeCacheKey(chain, address) {
+  const c = String(chain ?? '').trim().toLowerCase();
+  return `${c}:${normalizeAddress(c, address)}`;
+}
+
+function cachePut(key, data) {
+  if (!key || !data) return;
+  const normKey = String(key).trim();
+  if (clientAnalysisCache.has(normKey)) {
+    clientAnalysisCache.delete(normKey);
+  }
+  clientAnalysisCache.set(normKey, { data, ts: Date.now() });
+  if (clientAnalysisCache.size > MAX_CLIENT_CACHE) {
+    const oldestKey = clientAnalysisCache.keys().next().value;
+    clientAnalysisCache.delete(oldestKey);
+  }
+}
+
+function cacheGet(key) {
+  if (!key) return null;
+  const normKey = String(key).trim();
+  const entry = clientAnalysisCache.get(normKey);
+  if (!entry) return null;
+  if (Date.now() - entry.ts >= CLIENT_CACHE_TTL_MS) {
+    clientAnalysisCache.delete(normKey);
+    return null;
+  }
+  // Refresh LRU order
+  clientAnalysisCache.delete(normKey);
+  clientAnalysisCache.set(normKey, entry);
+  return entry.data;
+}
+
+// 번들에서 체인에 맞는 주소 고르기 (백엔드 detect_address_type과 일치)
+function pickAddressForChain(chain, raw) {
+  if (!raw) return null;
+  const toks = raw.split(/[,;\s]+/).filter(Boolean);
+  const kind = a => (a.startsWith('0x') && a.length === 42) ? 'evm'
+    : (a.startsWith('T') && a.length >= 33 && a.length <= 35) ? 'tron'
+    : (a.length >= 32 && a.length <= 44 && !a.startsWith('0x') && !a.startsWith('T')) ? 'solana' : null;
+  const want = (chain === 'ethereum' || chain === 'bsc') ? 'evm' : chain;
+  return toks.find(t => kind(t) === want) || null;
+}
+
+let unifiedInputMemo = '';
+
 // Switch Active Chain
 function switchChain(chain) {
+  const addressInput = document.getElementById('addressInput');
+  const prev = addressInput ? addressInput.value.trim() : '';
+  if (currentChain === 'unified' && prev) unifiedInputMemo = prev;
+
   currentChain = chain;
   const cfg = CHAIN_PRESETS[chain];
   const dict = I18N[currentLanguage] || I18N.ko;
@@ -1510,17 +1606,20 @@ function switchChain(chain) {
   document.getElementById('sliderMaxLabel').innerText = `$${cfg.maxSlider}`;
   syncUsdFilterControls(0, false);
 
-  document.getElementById('addressInput').value = cfg.defaultAddress;
+  const isPreset = Object.values(CHAIN_PRESETS).some(p => p.defaultAddress.toLowerCase() === prev.toLowerCase());
+  let targetAddress = cfg.defaultAddress;
+  if (chain === 'unified') {
+    targetAddress = unifiedInputMemo || (isPreset || !prev ? cfg.defaultAddress : prev);
+  } else if (!isPreset && prev) {
+    targetAddress = pickAddressForChain(chain, prev) || cfg.defaultAddress;
+  }
+  if (addressInput) addressInput.value = targetAddress;
+
   document.getElementById('presetLabel').innerText = cfg.label;
   document.getElementById('presetBadge').innerText = dict[cfg.badgeKey] || dict.badgeUnified;
 
-  loadAnalysis(chain, cfg.defaultAddress);
+  loadAnalysis(chain, targetAddress, false);
 }
-
-// ----------------------------------------------------------------------------
-// Client-side Memory Cache (Instant Tab Switching without Network Re-query)
-// ----------------------------------------------------------------------------
-const clientAnalysisCache = {};
 
 // ----------------------------------------------------------------------------
 // Rate Limit & Cooldown Manager (Max 25 queries / min = ~2.4s cooldown)
@@ -1571,13 +1670,11 @@ function startCooldown(durationSec = SCAN_COOLDOWN_SECONDS) {
 // Load Real On-Chain Analysis Data (Instant render on cache hit!)
 async function loadAnalysis(chain, address, forceRefresh = false) {
   const dict = I18N[currentLanguage] || I18N.ko;
-  const normalizedChain = (chain || 'solana').toLowerCase();
-  const normalizedAddr = (address || '').trim().toLowerCase();
-  const cacheKey = `${normalizedChain}:${normalizedAddr}`;
+  const cacheKey = makeCacheKey(chain, address);
 
   // Instant Cache Hit: Skip network fetch & cooldown, render immediately!
-  if (!forceRefresh && clientAnalysisCache[cacheKey]) {
-    const cachedData = clientAnalysisCache[cacheKey];
+  const cachedData = !forceRefresh ? cacheGet(cacheKey) : null;
+  if (cachedData) {
     currentData = cachedData;
     renderDashboard(cachedData);
     renderGraph(cachedData.graph_data);
@@ -1607,56 +1704,110 @@ async function loadAnalysis(chain, address, forceRefresh = false) {
   progressContainer.classList.remove('hidden');
   progressBar.style.width = '30%';
   progressPercent.innerText = '30%';
-  logFeed.innerHTML = `<div class="text-indigo-700 dark:text-indigo-400">[1/3] ${chain.toUpperCase()} ${dict.logStep1}</div>`;
+  logFeed.innerHTML = `<div class="text-indigo-700 dark:text-indigo-400">[1/3] ${esc(chain.toUpperCase())} ${dict.logStep1}</div>`;
 
-  setTimeout(() => {
+  let curPct = 30;
+  let step2Timer = null;
+  let creepTimer = null;
+
+  step2Timer = setTimeout(() => {
+    if (!isScanning) return;
+    curPct = 70;
     progressBar.style.width = '70%';
     progressPercent.innerText = '70%';
     logFeed.innerHTML = `
       <div class="text-emerald-700 dark:text-emerald-400">✓ [1/3] ${dict.logStep1Done}</div>
       <div class="text-indigo-700 dark:text-indigo-400">[2/3] ${dict.logStep2}</div>
     `;
+    creepTimer = setInterval(() => {
+      if (isScanning && curPct < 94) {
+        curPct += 2;
+        progressBar.style.width = `${curPct}%`;
+        progressPercent.innerText = `${curPct}%`;
+      }
+    }, 450);
   }, 180);
 
   try {
-    const res = await fetch(`/api/analysis?chain=${encodeURIComponent(chain)}&address=${encodeURIComponent(address)}`);
-    const data = await res.json();
+    const forceParam = forceRefresh ? '&force_refresh=true' : '';
+    const res = await fetch(`/api/analysis?chain=${encodeURIComponent(chain)}&address=${encodeURIComponent(address)}${forceParam}`);
+    
+    let data = null;
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        data = null;
+      }
+    }
 
     if (!res.ok) {
-      if (res.status === 429) {
-        showToast(data.detail || dict.rateLimitExceeded);
-      } else {
-        showToast(data.detail || '온체인 스캔 중 오류가 발생했습니다.');
+      let errorMsg = '';
+      if (data && data.detail) {
+        if (Array.isArray(data.detail)) {
+          errorMsg = data.detail.map(d => (typeof d === 'object' ? (d.msg || JSON.stringify(d)) : d)).join(', ');
+        } else if (typeof data.detail === 'string') {
+          errorMsg = data.detail;
+        }
       }
+
+      if (!errorMsg) {
+        if (res.status === 429) {
+          errorMsg = dict.rateLimitExceeded || '분당 최대 실시간 스캔 횟수를 초과했습니다. 잠시 후 다시 시도해 주세요.';
+        } else if (res.status === 422) {
+          errorMsg = '유효하지 않은 체인 또는 주소입니다.';
+        } else if (res.status === 503) {
+          errorMsg = '서버가 혼잡합니다. 잠시 후 다시 시도해 주세요.';
+        } else if (res.status === 502 || res.status === 504) {
+          errorMsg = `게이트웨이/네트워크 응답 지연이 발생했습니다 (${res.status}). 잠시 후 다시 시도해 주세요.`;
+        } else {
+          errorMsg = `온체인 스캔 중 오류가 발생했습니다 (${res.status} ${res.statusText || ''})`.trim();
+        }
+      }
+
+      showToast(errorMsg);
       progressContainer.classList.add('hidden');
       return;
     }
 
     currentData = data;
-    // Save to client memory cache
-    clientAnalysisCache[cacheKey] = data;
+    // Save to client memory cache only if complete (never cache partial failures)
+    if (!data.is_partial && !data.partial) {
+      cachePut(cacheKey, data);
+    }
+    // Decompose sub-chains into client cache safely supporting both key formats
+    Object.entries(data.per_chain_results || {}).forEach(([k, sub]) => {
+      if (sub && !sub.is_partial && !sub.partial) {
+        const key = k.includes(':') ? k : makeCacheKey(k, sub.address || '');
+        cachePut(key, sub);
+      }
+    });
 
+    if (step2Timer) clearTimeout(step2Timer);
+    if (creepTimer) clearInterval(creepTimer);
+
+    progressBar.style.width = '100%';
+    progressPercent.innerText = '100%';
+    logFeed.innerHTML = `
+      <div class="text-emerald-700 dark:text-emerald-400">✓ [3/3] ${dict.logStep3Done}</div>
+    `;
     setTimeout(() => {
-      progressBar.style.width = '100%';
-      progressPercent.innerText = '100%';
-      logFeed.innerHTML = `
-        <div class="text-emerald-700 dark:text-emerald-400">✓ [3/3] ${dict.logStep3Done}</div>
-      `;
-      setTimeout(() => {
-        progressContainer.classList.add('hidden');
-      }, 280);
+      progressContainer.classList.add('hidden');
+    }, 280);
 
-      renderDashboard(data);
-      renderGraph(data.graph_data);
-      renderWalletsList(data.classified_wallets || []);
-      renderRecoveryTargets(data.recovery_targets || [], data.has_external_protocol);
-    }, 320);
+    renderDashboard(data);
+    renderGraph(data.graph_data);
+    renderWalletsList(data.classified_wallets || []);
+    renderRecoveryTargets(data.recovery_targets || [], data.has_external_protocol);
 
   } catch (err) {
     console.error(err);
-    showToast(dict.rateLimitExceeded || '온체인 스캔 요청에 실패했습니다.');
+    showToast(dict.networkError || '네트워크 또는 서버 응답 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
     progressContainer.classList.add('hidden');
   } finally {
+    if (step2Timer) clearTimeout(step2Timer);
+    if (creepTimer) clearInterval(creepTimer);
     isScanning = false;
     const searchBtn = document.getElementById('searchBtn');
     if (searchBtn && cooldownRemaining <= 0) {
@@ -1711,30 +1862,47 @@ function renderWalletsList(wallets) {
     const protoText = w.protocol_id ? w.protocol_name : dict.blankProtocol;
     const localizedLabel = localizeText(w.label, currentLanguage);
 
+    const relScore = Number(w.relation_score !== undefined ? w.relation_score : (w.is_my_wallet ? 90 : 20));
+    const scoreBadgeClass = w.is_my_wallet
+      ? 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/30'
+      : 'bg-slate-500/15 text-slate-600 dark:text-slate-400 border-slate-500/25';
+    const pivotChain = w.pivot_chain || (w.chain && w.chain !== 'bridge' ? w.chain : currentChain);
+    const pivotAddr = w.pivot_address || w.address;
+    const canPivot = w.can_pivot_scan !== false && Boolean(pivotAddr);
+
     row.className = 'inner-box rounded-xl p-3 transition cursor-pointer flex items-center justify-between gap-3';
     row.innerHTML = `
       <div class="flex items-center gap-2.5 min-w-0">
         <span class="w-2.5 h-2.5 rounded-full ${dotColor} shrink-0"></span>
         <div class="min-w-0">
-          <div class="flex items-center gap-1.5">
-            <span class="text-xs font-bold text-slate-900 dark:text-white truncate">${localizedLabel}</span>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-xs font-bold text-slate-900 dark:text-white truncate">${esc(localizedLabel)}</span>
+            <span class="text-[9.5px] font-mono font-bold px-1.5 py-0.2 rounded border ${scoreBadgeClass}">연관도 ${esc(relScore)}%</span>
           </div>
           <div class="flex items-center gap-2 text-[10px] text-slate-600 dark:text-slate-400 font-mono mt-0.5">
-            <span>${w.short_addr || w.address.slice(0, 10)}</span>
+            <span>${esc(w.short_addr || (w.address || '').slice(0, 10))}</span>
             <span>·</span>
-            <span>${w.lifetime_txs.toLocaleString()} ${dict.txCountLabel}</span>
-            <span>·</span>
-            <span>${dict.protocolLabel} ${protoText}</span>
+            <span>생애 ${esc((w.lifetime_txs || 1).toLocaleString())}${dict.txCountLabel} (교류 ${esc(w.my_tx_count || 1)}회)</span>
           </div>
         </div>
       </div>
-      <div class="text-right shrink-0">
+      <div class="text-right shrink-0 flex flex-col items-end gap-1">
         <span class="text-xs font-bold font-mono tabular-nums ${w.current_usd > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400'}">
           ${w.current_usd > 0 ? dict.balLabel + ' $' + Number(w.current_usd).toFixed(2) : (w.is_my_wallet ? dict.volLabel + ' $' + Number(w.volume_usd).toFixed(2) : 'CEX')}
         </span>
-        <span class="block text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">${dict.detailsBtn}</span>
+        <div class="flex items-center gap-1.5">
+          ${canPivot && w.is_my_wallet ? `<button type="button" class="pivot-inline-btn px-2 py-0.5 rounded bg-indigo-600/15 hover:bg-indigo-600 hover:text-white text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 text-[10px] font-semibold transition">🔍 연관추적</button>` : ''}
+          <span class="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">${dict.detailsBtn}</span>
+        </div>
       </div>
     `;
+    const pivotBtn = row.querySelector('.pivot-inline-btn');
+    if (pivotBtn) {
+      pivotBtn.onclick = (ev) => {
+        ev.stopPropagation();
+        pivotToWallet(pivotAddr, pivotChain, localizedLabel);
+      };
+    }
     row.onclick = () => openBottomSheet(w);
     container.appendChild(row);
   });
@@ -1763,24 +1931,26 @@ function renderRecoveryTargets(targets, hasExternalProtocol) {
       const localizedBadge = localizeText(t.badge, currentLanguage);
       const localizedTitle = localizeText(t.title, currentLanguage);
       const localizedDesc = localizeText(t.description, currentLanguage);
+      const safeTargetUrl = safeHttpsUrl(t.official_url, 'https://solscan.io');
+      const shortTargetUrl = safeTargetUrl.replace(/^https:\/\//, '').slice(0, 32);
 
       card.className = 'inner-box rounded-xl p-3.5 transition cursor-pointer space-y-2';
       card.innerHTML = `
         <div class="flex items-start justify-between gap-2">
           <div>
-            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/25 inline-block mb-1">${localizedBadge}</span>
-            <h4 class="text-xs font-bold text-slate-900 dark:text-white leading-snug">${localizedTitle}</h4>
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/25 inline-block mb-1">${esc(localizedBadge)}</span>
+            <h4 class="text-xs font-bold text-slate-900 dark:text-white leading-snug">${esc(localizedTitle)}</h4>
           </div>
           <span class="text-sm font-mono font-extrabold text-emerald-700 dark:text-emerald-400 tabular-nums shrink-0">$${Number(t.value_usd).toFixed(2)}</span>
         </div>
-        <p class="text-[11px] text-slate-700 dark:text-slate-400 leading-relaxed">${localizedDesc}</p>
+        <p class="text-[11px] text-slate-700 dark:text-slate-400 leading-relaxed">${esc(localizedDesc)}</p>
         
         <div class="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 dark:border-white/[0.06] text-[10px]">
           <span class="text-slate-600 dark:text-slate-400 font-medium">
-            ${dict.extProtocolPrefix} <strong class="text-slate-900 dark:text-slate-200">${protoDisplay}</strong>
+            ${dict.extProtocolPrefix} <strong class="text-slate-900 dark:text-slate-200">${esc(protoDisplay)}</strong>
           </span>
-          <a href="${t.official_url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" class="text-indigo-700 dark:text-indigo-400 hover:underline font-mono font-bold flex items-center gap-1">
-            <span>${t.official_url.replace('https://', '').slice(0, 32)}...</span>
+          <a href="${esc(safeTargetUrl)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" class="text-indigo-700 dark:text-indigo-400 hover:underline font-mono font-bold flex items-center gap-1">
+            <span>${esc(shortTargetUrl)}...</span>
             <i data-lucide="external-link" class="w-3 h-3"></i>
           </a>
         </div>
@@ -1825,9 +1995,33 @@ function openBottomSheet(wallet) {
   const wChain = (wallet.chain && CHAIN_PRESETS[wallet.chain]) ? wallet.chain : (currentChain === 'unified' ? 'solana' : currentChain);
   const cfg = CHAIN_PRESETS[wChain] || CHAIN_PRESETS.solana;
 
+  activeSheetWallet = wallet;
   document.getElementById('sheetWalletAddress').innerText = wallet.address;
   document.getElementById('sheetWalletBadge').innerText = localizeText(wallet.label, currentLanguage);
-  document.getElementById('sheetTxCount').innerText = `${(wallet.lifetime_txs || 0).toLocaleString()} ${dict.txCountLabel}`;
+  const relScore = Number(wallet.relation_score !== undefined ? wallet.relation_score : (wallet.is_my_wallet ? 90 : 20));
+  const scoreBadgeEl = document.getElementById('sheetRelationScoreBadge');
+  if (scoreBadgeEl) {
+    scoreBadgeEl.innerText = `연관 신뢰도 ${relScore}%`;
+  }
+  const tagsEl = document.getElementById('sheetEvidenceTags');
+  if (tagsEl) {
+    tagsEl.innerHTML = '';
+    const tags = Array.isArray(wallet.evidence_tags) && wallet.evidence_tags.length > 0
+      ? wallet.evidence_tags
+      : (wallet.is_my_wallet ? ['내 지갑 연관 확인'] : ['외부 거래 상대방']);
+    tags.forEach(t => {
+      const span = document.createElement('span');
+      span.className = 'text-[10px] font-medium px-2 py-0.5 rounded-md bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/25';
+      span.innerText = t;
+      tagsEl.appendChild(span);
+    });
+  }
+  const pivotBtnEl = document.getElementById('pivotSheetAddrBtn');
+  if (pivotBtnEl) {
+    const canPivot = wallet.can_pivot_scan !== false && Boolean(wallet.address);
+    pivotBtnEl.style.display = canPivot ? 'inline-flex' : 'none';
+  }
+  document.getElementById('sheetTxCount').innerText = `${(wallet.lifetime_txs || 0).toLocaleString()} ${dict.txCountLabel} (교류 ${wallet.my_tx_count || 1}회)`;
   document.getElementById('sheetCurrentUsd').innerText = `$${Number(wallet.current_usd || 0).toFixed(2)}`;
   document.getElementById('sheetVolumeUsd').innerText = `$${Number(wallet.volume_usd || 0).toFixed(2)}`;
   document.getElementById('sheetWalletReason').innerText = localizeText(wallet.reason, currentLanguage);
@@ -1842,8 +2036,8 @@ function openBottomSheet(wallet) {
       row.className = 'inner-box flex items-center justify-between p-2.5 rounded-xl';
       row.innerHTML = `
         <div>
-          <span class="text-slate-900 dark:text-white font-bold block text-xs">${localizeText(p.name, currentLanguage)}</span>
-          <span class="text-slate-600 dark:text-slate-400 text-[11px] font-mono">${p.amount_desc || ''}</span>
+          <span class="text-slate-900 dark:text-white font-bold block text-xs">${esc(localizeText(p.name, currentLanguage))}</span>
+          <span class="text-slate-600 dark:text-slate-400 text-[11px] font-mono">${esc(p.amount_desc || '')}</span>
         </div>
         <span class="text-emerald-700 dark:text-emerald-400 font-mono font-bold tabular-nums text-xs">$${Number(p.usd).toFixed(2)}</span>
       `;
@@ -1866,7 +2060,7 @@ function openBottomSheet(wallet) {
   protoRow.innerHTML = `
     <span class="text-slate-700 dark:text-slate-300 font-semibold text-xs">${dict.extDefiProtocol}</span>
     <span class="font-mono font-bold text-xs ${extProtoId ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'}">
-      ${extProtoId ? extProtoId.toUpperCase() : dict.blankProtocol}
+      ${extProtoId ? esc(String(extProtoId).toUpperCase()) : dict.blankProtocol}
     </span>
   `;
   posContainer.appendChild(protoRow);
@@ -1883,10 +2077,10 @@ function openBottomSheet(wallet) {
       txRow.className = 'inner-box flex items-center justify-between p-2 rounded-lg text-[11px]';
       txRow.innerHTML = `
         <div>
-          <span class="font-semibold text-slate-900 dark:text-white block">${localizeText(tx.direction, currentLanguage)}</span>
-          <span class="font-mono text-[10px] text-slate-500">${tx.date || dict.dateUnknown}</span>
+          <span class="font-semibold text-slate-900 dark:text-white block">${esc(localizeText(tx.direction, currentLanguage))}</span>
+          <span class="font-mono text-[10px] text-slate-500">${esc(tx.date || dict.dateUnknown)}</span>
         </div>
-        <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">${tx.amount} ${tx.symbol || ''}</span>
+        <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">${esc(tx.amount)} ${esc(tx.symbol || '')}</span>
       `;
       posContainer.appendChild(txRow);
     });
@@ -1906,6 +2100,7 @@ function openBottomSheet(wallet) {
 function renderSheetProtocolTier(protoId, address, explorerFullUrl) {
   const container = document.getElementById('sheetProtocolContainer');
   const dict = I18N[currentLanguage] || I18N.ko;
+  const safeExplorerUrl = safeHttpsUrl(explorerFullUrl, 'https://solscan.io');
 
   if (!protoId) {
     // STRICT BLANK STATE + SPONSORED AD SLOT WHEN NO PROTOCOL IS ASSOCIATED!
@@ -1935,13 +2130,13 @@ function renderSheetProtocolTier(protoId, address, explorerFullUrl) {
 
       <div class="pt-1">
         <a
-          href="${explorerFullUrl}"
+          href="${esc(safeExplorerUrl)}"
           target="_blank"
           rel="noopener noreferrer"
           class="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-2 font-mono"
         >
           <i data-lucide="shield-check" class="w-4 h-4 text-emerald-300"></i>
-          <span>${dict.officialLinkPrefix} ${explorerFullUrl.slice(0, 46)}...</span>
+          <span>${dict.officialLinkPrefix} ${esc(safeExplorerUrl.slice(0, 46))}...</span>
           <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
         </a>
         <p class="text-[10px] text-center text-slate-600 dark:text-slate-400 mt-1.5">
@@ -1956,30 +2151,31 @@ function renderSheetProtocolTier(protoId, address, explorerFullUrl) {
   fetch('/api/protocols').then(r => r.json()).then(protocols => {
     const proto = protocols[protoId];
     if (!proto) {
-      renderSheetProtocolTier(null, address, explorerFullUrl);
+      renderSheetProtocolTier(null, address, safeExplorerUrl);
       return;
     }
+    const safeProtoUrl = safeHttpsUrl(proto.official_url, safeExplorerUrl);
     container.innerHTML = `
       <div class="flex items-center justify-between">
         <h3 class="text-xs font-bold text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
-          <span>${proto.name} (${proto.category})</span>
+          <span>${esc(proto.name)} (${esc(proto.category)})</span>
         </h3>
         <span class="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 font-semibold">${dict.officialVerified}</span>
       </div>
-      <p class="text-xs text-slate-800 dark:text-slate-300 leading-relaxed">${proto.description}</p>
+      <p class="text-xs text-slate-800 dark:text-slate-300 leading-relaxed">${esc(proto.description)}</p>
       <div class="inner-box text-[11px] text-slate-700 dark:text-slate-300 p-3 rounded-xl leading-relaxed">
         <strong class="text-indigo-700 dark:text-indigo-400 block mb-0.5">${dict.sheetEscapeTitle}</strong>
-        ${proto.escape_guide}
+        ${esc(proto.escape_guide)}
       </div>
       <div class="pt-1">
         <a
-          href="${proto.official_url}"
+          href="${esc(safeProtoUrl)}"
           target="_blank"
           rel="noopener noreferrer"
           class="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-2 font-mono"
         >
           <i data-lucide="shield-check" class="w-4 h-4 text-emerald-300"></i>
-          <span>${dict.officialLinkPrefix} ${proto.official_url}</span>
+          <span>${dict.officialLinkPrefix} ${esc(safeProtoUrl)}</span>
           <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
         </a>
         <p class="text-[10px] text-center text-slate-600 dark:text-slate-400 mt-1.5">
@@ -2192,8 +2388,189 @@ function renderGraph(graphData) {
   });
 }
 
+// ============================================================================
+// v9.0 RELATED-WALLET PIVOT SCAN & INTERACTIVE RECOVERY / AFFILIATE FUNNEL
+// ============================================================================
+function renderPivotTrail() {
+  const container = document.getElementById('pivotTrailContainer');
+  const itemsEl = document.getElementById('pivotTrailItems');
+  if (!container || !itemsEl) return;
+
+  if (pivotTrail.length <= 1) {
+    container.classList.add('hidden');
+    itemsEl.innerHTML = '';
+    return;
+  }
+
+  container.classList.remove('hidden');
+  itemsEl.innerHTML = '';
+
+  pivotTrail.forEach((step, idx) => {
+    const isLast = idx === pivotTrail.length - 1;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = isLast
+      ? 'px-2 py-0.5 rounded bg-indigo-600 text-white font-mono font-bold text-[10px] shrink-0'
+      : 'inner-box px-2 py-0.5 rounded text-slate-700 dark:text-slate-300 font-mono text-[10px] hover:border-indigo-500 shrink-0';
+    const shortAddr = step.address.length > 14 ? `${step.address.slice(0, 6)}...${step.address.slice(-4)}` : step.address;
+    btn.innerText = `${idx === 0 ? '🏠 ' : '👤 '}${step.chain.toUpperCase()}:${shortAddr}`;
+    btn.onclick = () => {
+      pivotTrail = pivotTrail.slice(0, idx + 1);
+      renderPivotTrail();
+      const target = pivotTrail[pivotTrail.length - 1];
+      currentChain = target.chain;
+      document.getElementById('addressInput').value = target.address;
+      switchChainWithAddress(target.chain, target.address);
+    };
+    itemsEl.appendChild(btn);
+
+    if (!isLast) {
+      const sep = document.createElement('span');
+      sep.className = 'text-slate-400 font-bold text-[10px]';
+      sep.innerText = '➔';
+      itemsEl.appendChild(sep);
+    }
+  });
+}
+
+function switchChainWithAddress(chain, address) {
+  const targetChain = CHAIN_PRESETS[chain] ? chain : 'unified';
+  currentChain = targetChain;
+  document.querySelectorAll('.chain-tab').forEach(tab => {
+    const tChain = tab.getAttribute('data-chain');
+    tab.className = (tChain === targetChain)
+      ? 'chain-tab chain-tab-active px-3 py-2.5 rounded-xl text-left transition-all flex items-center gap-2.5'
+      : 'chain-tab chain-tab-inactive px-3 py-2.5 rounded-xl text-left transition-all flex items-center gap-2.5';
+  });
+  const addressInput = document.getElementById('addressInput');
+  if (addressInput) addressInput.value = address;
+  loadAnalysis(targetChain, address, false);
+}
+
+function pivotToWallet(targetAddress, targetChain, labelHint = '') {
+  if (!targetAddress) return;
+  const resolvedChain = (targetChain && CHAIN_PRESETS[targetChain]) ? targetChain : currentChain;
+  const currentAddr = (document.getElementById('addressInput')?.value || '').trim();
+
+  if (pivotTrail.length === 0 && currentAddr) {
+    pivotTrail.push({
+      chain: currentChain,
+      address: currentAddr,
+      label: 'Root Wallet'
+    });
+  }
+
+  const last = pivotTrail[pivotTrail.length - 1];
+  if (!last || last.address.toLowerCase() !== targetAddress.toLowerCase() || last.chain !== resolvedChain) {
+    pivotTrail.push({
+      chain: resolvedChain,
+      address: targetAddress,
+      label: labelHint || targetAddress
+    });
+  }
+
+  closeBottomSheet();
+  renderPivotTrail();
+  switchChainWithAddress(resolvedChain, targetAddress);
+  showToast(`🔍 연관 지갑(${targetAddress.slice(0, 6)}...) 연쇄 추적을 시작합니다.`);
+}
+
+async function loadPartnerAdConfig() {
+  try {
+    const res = await fetch('/api/ad-config');
+    if (res.ok) {
+      const cfg = await res.json();
+      partnerAdConfig = Object.assign(partnerAdConfig, cfg || {});
+      const topAdLink = document.getElementById('topAdLink');
+      if (topAdLink && partnerAdConfig.affiliate_url) {
+        topAdLink.href = safeHttpsUrl(partnerAdConfig.affiliate_url, 'https://shop.ledger.com');
+      }
+    }
+  } catch (e) {
+    // Keep safe defaults
+  }
+}
+
+function openRecoveryModal() {
+  const modal = document.getElementById('recoveryModalBackdrop');
+  const summaryEl = document.getElementById('recoveryModalSummary');
+  const partnersEl = document.getElementById('recoveryPartnerCards');
+  if (!modal || !summaryEl || !partnersEl) return;
+
+  const data = currentData || {};
+  const totalUsd = Number(data.total_recoverable_usd || 0).toFixed(2);
+  const myWallets = (data.classified_wallets || []).filter(w => w.is_my_wallet);
+  const targets = data.recovery_targets || [];
+
+  summaryEl.innerHTML = `
+    <div class="flex items-center justify-between border-b border-slate-300 dark:border-white/[0.08] pb-2">
+      <span class="font-bold text-slate-900 dark:text-white">현재 스캔 요약 · 발굴된 연관 지갑 및 자산</span>
+      <span class="font-mono font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">$${totalUsd} USD</span>
+    </div>
+    <div class="grid grid-cols-2 gap-2 pt-1">
+      <div class="inner-box p-2.5 rounded-lg">
+        <span class="text-[10px] text-slate-500 block">식별된 내 연관/보조 지갑</span>
+        <span class="font-mono font-bold text-amber-600 dark:text-amber-400 text-xs">${myWallets.length}개 지갑 (클릭하여 연쇄 추적)</span>
+      </div>
+      <div class="inner-box p-2.5 rounded-lg">
+        <span class="text-[10px] text-slate-500 block">즉시 회수 대상 포지션</span>
+        <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-xs">${targets.length}건 (스테이킹·렌트·토큰)</span>
+      </div>
+    </div>
+    <p class="text-[11px] text-slate-700 dark:text-slate-300 pt-1 leading-relaxed">
+      💡 <strong>회수 팁:</strong> 솔라나 스테이킹/렌트비는 팬텀·솔플레어 지갑에서 해제하며, BNB/TRX 가스비가 부족해 묶인 USDT는 아래 제휴 거래소에서 소액 가스비를 입금해 즉시 인출할 수 있습니다.
+    </p>
+  `;
+
+  const partners = (partnerAdConfig.partners && partnerAdConfig.partners.length > 0) ? partnerAdConfig.partners : [
+    {
+      name: 'Binance (바이낸스 공식 제휴)',
+      benefit_badge: '거래 수수료 최대 20~40% 할인',
+      description: '발굴한 코인 현금화 및 가스비 부족 지갑 구출용 소액 BNB·TRX 출금 지원',
+      url: partnerAdConfig.exchange_referral_url || 'https://accounts.binance.com/register'
+    },
+    {
+      name: 'OKX (오케이엑스 Web3 & 거래소)',
+      benefit_badge: '수수료 30% 페이백 혜택',
+      description: '다계정 에어드랍 지갑 통합 관리 및 멀티체인 브릿지 자산 즉시 입출금',
+      url: partnerAdConfig.okx_referral_url || 'https://www.okx.com/join'
+    },
+    {
+      name: 'Ledger (렛저 하드웨어 콜드월렛)',
+      benefit_badge: '해킹·드레이너 100% 물리적 차단',
+      description: '되찾은 소중한 스테이킹·보조지갑 자산을 오프라인 보안 칩에 안전하게 통합 보관하세요',
+      url: partnerAdConfig.affiliate_url || 'https://shop.ledger.com'
+    }
+  ];
+
+  partnersEl.innerHTML = '';
+  partners.forEach(p => {
+    const safePartnerUrl = safeHttpsUrl(p.url, 'https://shop.ledger.com');
+    const card = document.createElement('div');
+    card.className = 'inner-box rounded-xl p-3 flex items-center justify-between gap-3';
+    card.innerHTML = `
+      <div class="min-w-0 space-y-0.5">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span class="text-xs font-bold text-slate-900 dark:text-white">${esc(p.name)}</span>
+          <span class="text-[9.5px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">${esc(p.benefit_badge)}</span>
+        </div>
+        <p class="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">${esc(p.description)}</p>
+      </div>
+      <a href="${esc(safePartnerUrl)}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold shrink-0 transition flex items-center gap-1">
+        <span>이동</span>
+        <i data-lucide="external-link" class="w-3 h-3"></i>
+      </a>
+    `;
+    partnersEl.appendChild(card);
+  });
+
+  modal.classList.remove('hidden');
+  initIcons();
+}
+
 // Initialize DOM Events
 document.addEventListener('DOMContentLoaded', () => {
+  loadPartnerAdConfig();
   initIcons();
 
   document.getElementById('langSelect').addEventListener('change', (e) => {
@@ -2206,17 +2583,23 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  document.getElementById('searchBtn').addEventListener('click', () => {
+  function runSearch() {
     const addr = document.getElementById('addressInput').value.trim();
-    loadAnalysis(currentChain, addr, true);
-  });
+    if (!addr) return;
+    const same = currentData && currentData.chain === currentChain &&
+      (currentData.address || '').toLowerCase() === addr.toLowerCase();
+    loadAnalysis(currentChain, addr, !!same);
+  }
+
+  document.getElementById('searchBtn').addEventListener('click', runSearch);
   document.getElementById('addressInput').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
-      loadAnalysis(currentChain, e.target.value.trim(), true);
+      runSearch();
     }
   });
 
   document.getElementById('presetChip').addEventListener('click', () => {
+    unifiedInputMemo = '';
     const cfg = CHAIN_PRESETS[currentChain];
     document.getElementById('addressInput').value = cfg.defaultAddress;
     loadAnalysis(currentChain, cfg.defaultAddress);
@@ -2283,6 +2666,44 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('copySheetAddr').addEventListener('click', () => {
     copyToClipboard(document.getElementById('sheetWalletAddress').innerText);
   });
+  const pivotSheetBtn = document.getElementById('pivotSheetAddrBtn');
+  if (pivotSheetBtn) {
+    pivotSheetBtn.addEventListener('click', () => {
+      if (activeSheetWallet && activeSheetWallet.address) {
+        const targetCh = activeSheetWallet.pivot_chain || (activeSheetWallet.chain && activeSheetWallet.chain !== 'bridge' ? activeSheetWallet.chain : currentChain);
+        pivotToWallet(activeSheetWallet.pivot_address || activeSheetWallet.address, targetCh, activeSheetWallet.label);
+      }
+    });
+  }
+  const resetPivotBtn = document.getElementById('resetPivotTrailBtn');
+  if (resetPivotBtn) {
+    resetPivotBtn.addEventListener('click', () => {
+      if (pivotTrail.length > 0) {
+        const rootStep = pivotTrail[0];
+        pivotTrail = [];
+        renderPivotTrail();
+        switchChainWithAddress(rootStep.chain, rootStep.address);
+      }
+    });
+  }
+  const openRecBtn = document.getElementById('openRecoveryModalBtn');
+  if (openRecBtn) openRecBtn.addEventListener('click', openRecoveryModal);
+  const openRecTopBtn = document.getElementById('openRecoveryTopBtn');
+  if (openRecTopBtn) openRecTopBtn.addEventListener('click', openRecoveryModal);
+  const closeRecBtn = document.getElementById('closeRecoveryModalBtn');
+  if (closeRecBtn) {
+    closeRecBtn.addEventListener('click', () => {
+      document.getElementById('recoveryModalBackdrop').classList.add('hidden');
+    });
+  }
+  const recBackdrop = document.getElementById('recoveryModalBackdrop');
+  if (recBackdrop) {
+    recBackdrop.addEventListener('click', (e) => {
+      if (e.target.id === 'recoveryModalBackdrop') {
+        recBackdrop.classList.add('hidden');
+      }
+    });
+  }
 
   document.getElementById('themeToggle').addEventListener('click', () => {
     document.documentElement.classList.toggle('dark');

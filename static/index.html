@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Wake Up Crypto | 멀티체인 방치 자산 & 다계정 역추적 솔루션</title>
+  <title>Wake Up Crypto v9.1 | 멀티체인 연관 지갑 탐정 & 방치 자산 복구 솔루션</title>
   
   <!-- Authentic Pretendard CDN + Inter & JetBrains Mono -->
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -36,9 +36,9 @@
     }
   </script>
   <!-- D3.js v7 -->
-  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
   <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js" crossorigin="anonymous"></script>
   
   <style>
     body {
@@ -228,7 +228,7 @@
         </div>
       </div>
 
-      <!-- Right Controls: Language, Buy Me a Coffee, Theme -->
+      <!-- Right Controls: Language, Recovery Funnel, Buy Me a Coffee, Theme -->
       <div class="flex items-center gap-2">
         <select id="langSelect" aria-label="Language" class="inner-box text-slate-800 dark:text-slate-200 text-xs font-medium rounded-lg px-2.5 py-1.5 outline-none focus:border-indigo-500 transition cursor-pointer">
           <option value="ko">🇰🇷 한국어</option>
@@ -238,6 +238,11 @@
           <option value="es">🇪🇸 Español</option>
           <option value="ru">🇷🇺 Русский</option>
         </select>
+
+        <button id="openRecoveryTopBtn" class="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-800 dark:text-emerald-300 border border-emerald-600/40 dark:border-emerald-500/30 font-semibold text-xs flex items-center gap-1.5 transition" title="찾은 자산 회수 및 제휴 수수료 할인 가이드">
+          <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"></i>
+          <span id="txt-btn-recovery-top" class="hidden sm:inline">회수·보안 혜택</span>
+        </button>
 
         <button id="openCoffeeBtn" class="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-800 dark:text-amber-300 border border-amber-600/40 dark:border-amber-500/30 font-semibold text-xs flex items-center gap-1.5 transition">
           <i data-lucide="coffee" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
@@ -258,7 +263,7 @@
           <span class="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-600 text-white font-semibold shrink-0">AD</span>
           <span id="txt-ad-banner" class="text-slate-800 dark:text-slate-300 font-medium truncate">콜드월렛 Ledger & Trezor — 되찾은 자산을 스캠과 드레이너로부터 안전하게 분리 보관하세요</span>
         </div>
-        <a href="https://www.ledger.com" target="_blank" rel="noopener noreferrer" class="text-indigo-700 dark:text-indigo-400 hover:underline font-bold text-[11px] shrink-0 ml-2 flex items-center gap-0.5">
+        <a id="topAdLink" href="https://shop.ledger.com" target="_blank" rel="noopener noreferrer" class="text-indigo-700 dark:text-indigo-400 hover:underline font-bold text-[11px] shrink-0 ml-2 flex items-center gap-0.5">
           <span id="txt-ad-cta">공식 스토어</span>
           <i data-lucide="arrow-up-right" class="w-3 h-3"></i>
         </a>
@@ -391,6 +396,16 @@
               <span id="presetLabel">BQ4x7ypg...Df7H</span>
               <span id="presetBadge" class="text-[10px] font-sans px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-800 dark:text-indigo-300 border border-indigo-500/30">실제 온체인 조회</span>
             </button>
+          </div>
+
+          <!-- v9.0 Related-Wallet Pivot Scan Breadcrumb Trail -->
+          <div id="pivotTrailContainer" class="hidden pt-2 border-t border-slate-300/60 dark:border-white/[0.06]">
+            <div class="flex items-center justify-between gap-2 text-[11px]">
+              <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5" id="pivotTrailItems"></div>
+              <button id="resetPivotTrailBtn" class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30 font-semibold text-[10px] shrink-0 hover:bg-amber-500/30 transition">
+                최초 지갑 복귀
+              </button>
+            </div>
           </div>
 
           <!-- Safe Scan Rate Limit & Cooldown Bar -->
@@ -549,6 +564,20 @@
               <span id="tokensMetric" class="text-xs sm:text-sm font-bold text-white font-mono tabular-nums mt-0.5 block">$0.00</span>
             </div>
           </div>
+
+          <!-- v9.0 Interactive Recovery & Partner Affiliate Funnel CTA -->
+          <div class="mt-3.5 pt-3 border-t border-white/[0.1]">
+            <button
+              id="openRecoveryModalBtn"
+              class="w-full py-2.5 px-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 text-white font-bold text-xs shadow-md transition flex items-center justify-between"
+            >
+              <span class="flex items-center gap-2">
+                <i data-lucide="sparkles" class="w-4 h-4 text-amber-300"></i>
+                <span id="txt-hero-recovery-cta">찾은 자산 회수 가이드 & 수수료 40% 할인 혜택</span>
+              </span>
+              <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+          </div>
         </section>
 
         <!-- Filtered Sub-Wallets List (Synced with USD Filter) -->
@@ -560,7 +589,7 @@
             </h2>
             <span class="text-[10px] font-mono font-bold text-slate-700 dark:text-slate-400 tabular-nums" id="walletListCount">0개 지갑</span>
           </div>
-          <div id="walletsList" class="space-y-2 max-h-[260px] overflow-y-auto pr-1"></div>
+          <div id="walletsList" class="space-y-2 max-h-[280px] overflow-y-auto pr-1"></div>
         </section>
 
         <!-- On-Chain Assets & External Protocol Status (Shows Ad Slot when External Protocol is Empty!) -->
@@ -590,15 +619,25 @@
           </button>
         </div>
 
-        <!-- Tier 1: Wallet Profile Info -->
+        <!-- Tier 1: Wallet Profile Info & 1-Click Pivot Scan -->
         <div class="panel-window rounded-2xl p-4 space-y-2.5">
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-xs font-bold text-indigo-700 dark:text-indigo-400 flex items-center gap-1.5" id="sheetWalletBadge"></span>
-            <button id="copySheetAddr" class="inner-box text-[11px] font-semibold text-slate-700 dark:text-slate-200 hover:text-indigo-600 flex items-center gap-1 px-2.5 py-1 rounded-lg shrink-0">
-              <i data-lucide="copy" class="w-3 h-3"></i> <span id="txt-sheet-copy">주소 복사</span>
-            </button>
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-indigo-700 dark:text-indigo-400 flex items-center gap-1.5" id="sheetWalletBadge"></span>
+              <span id="sheetRelationScoreBadge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30"></span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button id="pivotSheetAddrBtn" class="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold flex items-center gap-1 transition shrink-0">
+                <i data-lucide="radar" class="w-3 h-3"></i>
+                <span id="txt-sheet-pivot">이 지갑으로 연관 추적</span>
+              </button>
+              <button id="copySheetAddr" class="inner-box text-[11px] font-semibold text-slate-700 dark:text-slate-200 hover:text-indigo-600 flex items-center gap-1 px-2.5 py-1 rounded-lg shrink-0">
+                <i data-lucide="copy" class="w-3 h-3"></i> <span id="txt-sheet-copy">주소 복사</span>
+              </button>
+            </div>
           </div>
           <p id="sheetWalletAddress" class="inner-box text-xs text-slate-900 dark:text-slate-200 font-mono break-all px-3 py-2 rounded-lg"></p>
+          <div id="sheetEvidenceTags" class="flex flex-wrap gap-1.5 pt-0.5"></div>
           <div class="grid grid-cols-3 gap-2 pt-1 text-[11px]">
             <div class="inner-box p-2.5 rounded-lg">
               <span class="text-slate-500 dark:text-slate-400 block text-[10px]" id="txt-sheet-txs">전체 트랜잭션</span>
@@ -628,6 +667,41 @@
         <!-- Tier 3: Protocol Encyclopedia OR Blank + Sponsored Ad Slot -->
         <div id="sheetProtocolContainer" class="panel-window rounded-2xl p-4 space-y-3"></div>
 
+      </div>
+    </div>
+
+    <!-- v9.0 Interactive Asset Recovery & Partner Affiliate Funnel Modal -->
+    <div id="recoveryModalBackdrop" class="fixed inset-0 bg-black/75 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+      <div class="app-shell border-2 border-indigo-500/40 rounded-2xl p-5 max-w-lg w-full shadow-2xl space-y-4 relative max-h-[88vh] overflow-y-auto">
+        <button id="closeRecoveryModalBtn" class="absolute top-4 right-4 text-slate-500 hover:text-slate-900 dark:hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+            <i data-lucide="shield-check" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h2 class="text-sm font-bold text-slate-900 dark:text-white" id="txt-recovery-modal-title">찾은 자산 회수 & 보안·수수료 제휴 혜택</h2>
+            <p class="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold" id="txt-recovery-modal-sub">개인키 입력 없이 100% 공식 익스플로러·지갑 앱에서 직접 회수하세요</p>
+          </div>
+        </div>
+
+        <!-- Dynamic Scan Summary Banner inside Modal -->
+        <div id="recoveryModalSummary" class="panel-window rounded-xl p-3.5 text-xs space-y-2"></div>
+
+        <!-- Partner Affiliate Funnel Cards (Exchange Fee Discount & Hardware Cold Wallet) -->
+        <div class="space-y-2.5">
+          <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+            <i data-lucide="award" class="w-4 h-4 text-amber-500"></i>
+            <span id="txt-partner-funnel-title">공식 파트너 거래소 수수료 할인 & 하드웨어 지갑 스토어</span>
+          </h3>
+          <div id="recoveryPartnerCards" class="space-y-2"></div>
+        </div>
+
+        <p class="text-[10.5px] text-center text-slate-500 dark:text-slate-400">
+          ※ 본 서비스는 지갑 서명(Signature)이나 시드 구문을 절대 요구하지 않으며, 검증된 최상위 공식 도메인만 연결합니다.
+        </p>
       </div>
     </div>
 
@@ -698,6 +772,6 @@
 
   </div>
 
-  <script src="/static/app.js"></script>
+  <script src="/static/app.js?v=9.1.0"></script>
 </body>
 </html>

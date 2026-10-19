@@ -1,0 +1,31 @@
+.env
+.env.*
+!.env.example
+
+.git/
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+*.bak
+*.v8_*.bak
+
+archive_*/
+_v1_backup/
+*.zip
+*.txt
+!requirements.txt
+!requirements-dev.txt
+!ads.txt
+*.md
+*.gdoc
+
+# Strictly exclude entire runtime cache directories
+data_cache/
+data_cache/**
+
+# Exclude local dev/test artifacts
+tests/
+test_suite*.py
+scripts/
