@@ -16,7 +16,7 @@ import re
 import hashlib
 from typing import Optional, Tuple, Set
 
-VERSION = "9.1.0"
+VERSION = "9.1.1"
 
 EVM_CHAINS = frozenset({"ethereum", "bsc"})
 BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"

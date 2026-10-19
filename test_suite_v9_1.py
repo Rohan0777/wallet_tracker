@@ -332,13 +332,13 @@ class TestV90FinalSuite(unittest.TestCase):
         self.assertAlmostEqual(server._last_rate_limit_cleanup, now_mono, delta=0.5)
 
     def test_v9_1_version_alignment(self):
-        """Ensures all components reflect the 9.1.0 final release version."""
-        self.assertEqual(server.VERSION, "9.1.0")
-        self.assertEqual(address_utils.VERSION, "9.1.0")
-        self.assertEqual(multichain_tracker.VERSION, "9.1.0")
+        """Ensures all components reflect the 9.1.1 release version."""
+        self.assertEqual(server.VERSION, "9.1.1")
+        self.assertEqual(address_utils.VERSION, "9.1.1")
+        self.assertEqual(multichain_tracker.VERSION, "9.1.1")
         with TestClient(server.app) as client:
             resp = client.get("/healthz")
-            self.assertEqual(resp.json()["version"], "9.1.0")
+            self.assertEqual(resp.json()["version"], "9.1.1")
 
     # =========================================================================
     # 11. NEW v9.0 CORE DIRECTION & ON-CHAIN INTEGRITY VERIFICATION TESTS
@@ -1031,6 +1031,36 @@ class TestV90FinalSuite(unittest.TestCase):
         with open(os.path.join(base_dir, "static", "index.html"), "r", encoding="utf-8") as f:
             html_code = f.read()
         self.assertNotIn("backdrop-blur-xs", html_code)
+
+    def test_v9_1_ankr_nodereal_pancakeswap_integration(self):
+        """Verifies v9.1.1 Ankr & NodeReal key routing, failover, and PancakeSwap interaction detection."""
+        # 1. Bucket routing verification
+        with unittest.mock.patch.dict(os.environ, {
+            "ANKR_API_KEY": "test_ankr_key_123",
+            "NODEREAL_API_KEY": "test_nodereal_key_456"
+        }, clear=False):
+            multichain_tracker.refresh_env_keys(force=True)
+            self.assertIn("test_ankr_key_123", multichain_tracker.ANKR_API_KEYS)
+            self.assertIn("test_nodereal_key_456", multichain_tracker.NODEREAL_API_KEYS)
+            # Verify BSC RPC Pool incorporates NodeReal and Ankr
+            self.assertTrue(any("nodereal" in rpc for rpc in multichain_tracker.BSC_RPC_POOL))
+            self.assertTrue(any("ankr" in rpc for rpc in multichain_tracker.BSC_RPC_POOL))
+
+        # 2. PancakeSwap interaction and recovery target detection in analyze_evm_live
+        mock_counterparts = {
+            "0x10ed43c718714eb63d5aa57b78b54704e256024e": {  # PancakeSwap Router v2
+                "sent": 0.5, "recv": 0.0, "count": 3, "is_contract": True,
+                "name": "PancakeSwap Router", "txs": []
+            }
+        }
+        with unittest.mock.patch("multichain_tracker.fetch_etherscan_or_bscscan_data",
+                                 return_status=True,
+                                 return_value=(mock_counterparts, 3, True, [], True)), \
+             unittest.mock.patch("multichain_tracker.evm_rpc", return_value="0x1000"):
+            res = multichain_tracker.analyze_evm_live("bsc", "0xb107205E2f9D89E85fb7d6311FFD802049Ffe56e")
+            self.assertTrue(res["has_external_protocol"])
+            self.assertTrue(any(r["protocol_id"] == "pancakeswap" for r in res["recovery_targets"]))
+            self.assertTrue(res["stage_status"]["transactions"])
 
 
 if __name__ == "__main__":

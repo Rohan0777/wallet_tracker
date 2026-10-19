@@ -45,7 +45,7 @@ from address_utils import (
     MAX_BUNDLE
 )
 
-__version__ = "9.1.0"
+__version__ = "9.1.1"
 VERSION = __version__
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -570,10 +570,11 @@ async def add_security_headers(request: Request, call_next):
     csp_header = "Content-Security-Policy" if CSP_MODE == "enforce" else "Content-Security-Policy-Report-Only"
     response.headers[csp_header] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://d3js.org https://cdn.jsdelivr.net https://unpkg.com https://pagead2.googlesyndication.com https://ad.a-ads.com; "
+        "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://d3js.org https://cdn.jsdelivr.net https://unpkg.com https://pagead2.googlesyndication.com https://ad.a-ads.com https://acceptable.a-ads.com https://*.a-ads.com; "
         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
         "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com data:; "
-        "connect-src 'self'; img-src 'self' data: https:;"
+        "frame-src 'self' https://ad.a-ads.com https://acceptable.a-ads.com https://*.a-ads.com https://googleads.g.doubleclick.net; "
+        "connect-src 'self'; img-src 'self' data: https: https://*.a-ads.com;"
     )
     path = request.url.path
     if path == "/" or path.startswith("/static/"):

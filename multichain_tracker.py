@@ -15,7 +15,7 @@ Supports:
 - Novice Mistake & Dormant Asset Diagnostics (Native staking, Liquid staking stETH/mSOL/bSOL/jitoSOL/rETH, SPL rent, Frozen TRX, Gas-trapped tokens, Unwrapped WETH/WBNB, Deprecated BUSD).
 """
 
-VERSION = "9.1.0"
+VERSION = "9.1.1"
 
 import os
 import re
@@ -119,6 +119,12 @@ _TRON_KEY_NAMES = frozenset({
 _MORALIS_KEY_NAMES = frozenset({
     'moralis', 'moralis_api_key', 'moralis_api_keys'
 })
+_ANKR_KEY_NAMES = frozenset({
+    'ankr', 'ankr_api_key', 'ankr_api_keys', 'ankr_key', 'ankr_multichain_url', 'ankr_url'
+})
+_NODEREAL_KEY_NAMES = frozenset({
+    'nodereal', 'nodereal_api_key', 'nodereal_api_keys', 'nodereal_key', 'nodereal_rpc_url', 'nodereal_url'
+})
 
 
 def _normalize_key_identifier(raw_key: str) -> str:
@@ -135,11 +141,15 @@ def load_all_env_keys():
       - `SOLANA_RPC_URL`: full `https://` RPC endpoint URLs (never appended into `?api-key=`).
       - `ETHERSCAN_API_KEY` / `etherscan`: routed ONLY to Etherscan V2 (`api.etherscan.io/v2/api`).
       - `TRON_API_KEY` / `tron`: routed ONLY to TronScan/TronGrid headers.
+      - `ANKR_API_KEY` / `ankr`: routed to Ankr Advanced Multichain API (`rpc.ankr.com/multichain/`).
+      - `NODEREAL_API_KEY` / `nodereal`: routed to NodeReal MegaNode API (`bsc-mainnet.nodereal.io/v1/`).
     """
     buckets = {
         'tron': [],
         'etherscan': [],
         'bnbscan': [],
+        'ankr': [],
+        'nodereal': [],
         'helius': [],
         'solana_rpc': [],
         'solana': [],
@@ -186,6 +196,12 @@ def load_all_env_keys():
             elif norm_k in _MORALIS_KEY_NAMES and not is_http_url:
                 if v not in buckets['moralis']:
                     buckets['moralis'].append(v)
+            elif norm_k in _ANKR_KEY_NAMES:
+                if v not in buckets['ankr']:
+                    buckets['ankr'].append(v)
+            elif norm_k in _NODEREAL_KEY_NAMES:
+                if v not in buckets['nodereal']:
+                    buckets['nodereal'].append(v)
 
     def _parse_text(content, fallback_key=None):
         lines = [line.strip() for line in content.splitlines() if line.strip() and not line.strip().startswith('#')]
@@ -221,6 +237,8 @@ SOLANA_RPC_URLS = []
 SOLANA_API_KEYS = []
 MORALIS_API_KEYS = []
 ALCHEMY_API_KEYS = []
+ANKR_API_KEYS = []
+NODEREAL_API_KEYS = []
 SOL_RPC_POOL = []
 ETH_RPC_POOL = []
 BSC_RPC_POOL = []
@@ -228,6 +246,8 @@ BSC_RPC_POOL = []
 _tron_cycle = None
 _eth_cycle = None
 _bnb_cycle = None
+_ankr_cycle = None
+_nodereal_cycle = None
 _moralis_cycle = None
 _sol_rpc_cycle = None
 
@@ -235,8 +255,9 @@ _sol_rpc_cycle = None
 def refresh_env_keys(force=False):
     global _last_env_mtime, KEY_BUCKETS, TRON_API_KEYS, ETHERSCAN_API_KEYS, BNBSCAN_API_KEYS
     global HELIUS_API_KEYS, SOLANA_RPC_URLS, SOLANA_API_KEYS, MORALIS_API_KEYS, ALCHEMY_API_KEYS
+    global ANKR_API_KEYS, NODEREAL_API_KEYS
     global SOL_RPC_POOL, ETH_RPC_POOL, BSC_RPC_POOL
-    global _tron_cycle, _eth_cycle, _bnb_cycle, _moralis_cycle, _sol_rpc_cycle
+    global _tron_cycle, _eth_cycle, _bnb_cycle, _ankr_cycle, _nodereal_cycle, _moralis_cycle, _sol_rpc_cycle
 
     base_dir = os.path.dirname(os.path.abspath(__file__))
     env_file = os.path.join(base_dir, '.env')
@@ -251,6 +272,8 @@ def refresh_env_keys(force=False):
         tron_keys = list(buckets.get('tron', []))
         eth_keys = list(buckets.get('etherscan', []))
         bnb_keys = list(buckets.get('bnbscan', []))
+        ankr_keys = list(buckets.get('ankr', []))
+        nodereal_keys = list(buckets.get('nodereal', []))
         helius_keys = list(buckets.get('helius', []))
         sol_rpc_urls = list(buckets.get('solana_rpc', []))
         moralis_keys = list(buckets.get('moralis', []))
@@ -283,7 +306,22 @@ def refresh_env_keys(force=False):
                 'https://ethereum-rpc.publicnode.com'
             ]
         ))
+
+        # NodeReal and Ankr BSC RPC Endpoints (highest performance & reliability)
+        bsc_custom_rpcs = []
+        for nk in nodereal_keys:
+            if nk.startswith('http://') or nk.startswith('https://'):
+                bsc_custom_rpcs.append(nk)
+            else:
+                bsc_custom_rpcs.append(f"https://bsc-mainnet.nodereal.io/v1/{nk}")
+        for ak in ankr_keys:
+            if ak.startswith('http://') or ak.startswith('https://'):
+                bsc_custom_rpcs.append(ak)
+            else:
+                bsc_custom_rpcs.append(f"https://rpc.ankr.com/bsc/{ak}")
+
         bsc_pool = list(dict.fromkeys(
+            bsc_custom_rpcs +
             [f"https://bnb-mainnet.g.alchemy.com/v2/{k}" for k in alchemy_keys] + [
                 os.environ.get('BSC_RPC_URL', 'https://bsc-dataseed.binance.org'),
                 'https://bsc-rpc.publicnode.com',
@@ -295,6 +333,8 @@ def refresh_env_keys(force=False):
         TRON_API_KEYS = tron_keys
         ETHERSCAN_API_KEYS = eth_keys
         BNBSCAN_API_KEYS = bnb_keys
+        ANKR_API_KEYS = ankr_keys
+        NODEREAL_API_KEYS = nodereal_keys
         HELIUS_API_KEYS = helius_keys
         SOLANA_RPC_URLS = sol_rpc_urls
         SOLANA_API_KEYS = sol_keys
@@ -307,6 +347,8 @@ def refresh_env_keys(force=False):
         _tron_cycle = itertools.cycle(TRON_API_KEYS) if TRON_API_KEYS else None
         _eth_cycle = itertools.cycle(ETHERSCAN_API_KEYS) if ETHERSCAN_API_KEYS else None
         _bnb_cycle = itertools.cycle(BNBSCAN_API_KEYS) if BNBSCAN_API_KEYS else None
+        _ankr_cycle = itertools.cycle(ANKR_API_KEYS) if ANKR_API_KEYS else None
+        _nodereal_cycle = itertools.cycle(NODEREAL_API_KEYS) if NODEREAL_API_KEYS else None
         _moralis_cycle = itertools.cycle(MORALIS_API_KEYS) if MORALIS_API_KEYS else None
         _sol_rpc_cycle = itertools.cycle(SOL_RPC_POOL[:private_sol_count]) if private_sol_count > 0 else None
 
@@ -1173,11 +1215,14 @@ def get_sol_transactions(wallet_address):
     v9.0 Integrity Guarantee: ZERO static JSON file fallback (`all_wallets_classified.json` removed).
     """
     counterpart_map = {}
-    sigs_res = sol_rpc_call('getSignaturesForAddress', [wallet_address, {'limit': 20}])
+    sigs_res = sol_rpc_call('getSignaturesForAddress', [wallet_address, {'limit': 50}])
     tx_ok = sigs_res is not None
 
     if isinstance(sigs_res, list) and sigs_res:
-        ordered_sigs = [s for s in sigs_res[:12] if isinstance(s, dict) and s.get('signature')]
+        valid_sigs = [s for s in sigs_res if isinstance(s, dict) and s.get('signature') and not s.get('err')]
+        if not valid_sigs:
+            valid_sigs = [s for s in sigs_res if isinstance(s, dict) and s.get('signature')]
+        ordered_sigs = valid_sigs[:12]
         with _deadline_executor(6) as ex:
             tx_results = list(ex.map(
                 lambda s: (s, sol_rpc_call('getTransaction', [s['signature'], {'encoding': 'jsonParsed', 'maxSupportedTransactionVersion': 0}])),
@@ -1191,24 +1236,81 @@ def get_sol_transactions(wallet_address):
                     bt = s_meta.get('blockTime')
                     dt_str = time.strftime('%Y-%m-%d %H:%M', time.localtime(bt)) if bt else ''
                     msg = tx.get('transaction', {}).get('message', {})
-                    for ix in msg.get('instructions', []):
+                    meta = tx.get('meta') or {}
+
+                    all_ixs = list(msg.get('instructions', []))
+                    for inner in meta.get('innerInstructions', []):
+                        if isinstance(inner, dict):
+                            all_ixs.extend(inner.get('instructions', []))
+
+                    tx_found_peer = False
+                    for ix in all_ixs:
                         if isinstance(ix.get('parsed'), dict):
                             info = ix['parsed'].get('info', {})
-                            ptype = ix['parsed'].get('type')
-                            if ptype in ('transfer', 'createAccountWithSeed', 'delegate') and ('lamports' in info or 'source' in info):
+                            ptype = str(ix['parsed'].get('type', '')).lower()
+                            if ptype in ('transfer', 'transferchecked', 'createaccountwithseed', 'delegate', 'createaccount', 'closeaccount'):
                                 src = info.get('source') or info.get('from')
-                                dst = info.get('destination') or info.get('newAccount') or info.get('stakeAccount')
-                                amt = float(info.get('lamports', 0)) / 1e9
-                                if src == wallet_address and dst and dst != wallet_address:
+                                dst = info.get('destination') or info.get('to') or info.get('newAccount') or info.get('stakeAccount')
+                                auth = info.get('authority') or info.get('wallet')
+                                lamports = info.get('lamports')
+                                tok_amt = info.get('tokenAmount')
+                                sym = 'SOL'
+                                amt = 0.0
+                                if lamports is not None:
+                                    try:
+                                        amt = float(lamports) / 1e9
+                                    except Exception:
+                                        amt = 0.0
+                                elif tok_amt is not None and isinstance(tok_amt, dict):
+                                    amt = float(tok_amt.get('uiAmount') or 0.0)
+                                    mint = info.get('mint')
+                                    sym = KNOWN_SOL_TOKENS.get(mint, {}).get('symbol') or 'SPL'
+                                elif info.get('amount') is not None:
+                                    try:
+                                        amt = float(info.get('amount')) / 1e6
+                                        sym = 'TOKEN'
+                                    except Exception:
+                                        amt = 0.0
+
+                                if (src == wallet_address or auth == wallet_address) and dst and dst != wallet_address:
                                     c = counterpart_map.setdefault(dst, {'sent': 0.0, 'recv': 0.0, 'count': 0, 'txs': []})
-                                    c['sent'] += amt
+                                    c['sent'] += amt if sym == 'SOL' else 0.0
                                     c['count'] += 1
-                                    c['txs'].append({'signature': sig, 'date': dt_str, 'amount': round(amt, 4), 'direction': '내가 보낸 돈', 'symbol': 'SOL'})
-                                elif dst == wallet_address and src and src != wallet_address:
+                                    c['txs'].append({'signature': sig, 'date': dt_str, 'amount': round(amt, 4), 'direction': '내가 보낸 돈', 'symbol': sym})
+                                    tx_found_peer = True
+                                elif (dst == wallet_address or info.get('wallet') == wallet_address) and src and src != wallet_address:
                                     c = counterpart_map.setdefault(src, {'sent': 0.0, 'recv': 0.0, 'count': 0, 'txs': []})
-                                    c['recv'] += amt
+                                    c['recv'] += amt if sym == 'SOL' else 0.0
                                     c['count'] += 1
-                                    c['txs'].append({'signature': sig, 'date': dt_str, 'amount': round(amt, 4), 'direction': '내가 받은 돈', 'symbol': 'SOL'})
+                                    c['txs'].append({'signature': sig, 'date': dt_str, 'amount': round(amt, 4), 'direction': '내가 받은 돈', 'symbol': sym})
+                                    tx_found_peer = True
+
+                    # Fallback: check balance changes
+                    if not tx_found_peer:
+                        pre_b = meta.get('preBalances') or []
+                        post_b = meta.get('postBalances') or []
+                        acc_keys = [k.get('pubkey') if isinstance(k, dict) else k for k in msg.get('accountKeys', [])]
+                        if wallet_address in acc_keys and len(pre_b) == len(acc_keys) and len(post_b) == len(acc_keys):
+                            my_idx = acc_keys.index(wallet_address)
+                            my_diff = (post_b[my_idx] - pre_b[my_idx]) / 1e9
+                            fee = (meta.get('fee') or 5000) / 1e9
+                            if abs(my_diff) > fee * 1.2:
+                                for idx, k_addr in enumerate(acc_keys):
+                                    if idx == my_idx or not k_addr or k_addr == '11111111111111111111111111111111':
+                                        continue
+                                    other_diff = (post_b[idx] - pre_b[idx]) / 1e9
+                                    if my_diff < 0 and other_diff > 0:
+                                        c = counterpart_map.setdefault(k_addr, {'sent': 0.0, 'recv': 0.0, 'count': 0, 'txs': []})
+                                        c['sent'] += other_diff
+                                        c['count'] += 1
+                                        c['txs'].append({'signature': sig, 'date': dt_str, 'amount': round(other_diff, 4), 'direction': '내가 보낸 돈', 'symbol': 'SOL'})
+                                        break
+                                    elif my_diff > 0 and other_diff < 0:
+                                        c = counterpart_map.setdefault(k_addr, {'sent': 0.0, 'recv': 0.0, 'count': 0, 'txs': []})
+                                        c['recv'] += abs(other_diff)
+                                        c['count'] += 1
+                                        c['txs'].append({'signature': sig, 'date': dt_str, 'amount': round(abs(other_diff), 4), 'direction': '내가 받은 돈', 'symbol': 'SOL'})
+                                        break
                 except Exception:
                     continue
 
@@ -1322,11 +1424,343 @@ def evm_get_token_balance(rpc_url, token_address, user_address):
         return None
 
 
+PANCAKESWAP_ROUTERS = frozenset({
+    '0x10ed43c718714eb63d5aa57b78b54704e256024e',  # Router v2
+    '0x05ff2b0db69458a0750badebc4f9e13add608c7f',  # Router v1
+    '0x13f4ea83d0bd40e75c8222255bc855a974568dd4',  # Smart Router v3
+    '0x73feaa1ee314f8c655e354234017be2193c9e24e',  # MasterChef v1
+    '0xa5f8c5dbd5f286960b9d90548680ae5ebff07652',  # MasterChef v2
+    '0x1b96b92314c44b159149f7e0303511fb2fc4774f',  # SmartChef (Syrup Pool)
+    '0x6856011245ee10732ee7852fdb0b769ea8e7bb4c',  # Universal Router
+    '0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82',  # CAKE Token Contract
+})
+
+
+def safe_int_or_hex(val, default=0):
+    if val is None or val == "":
+        return default
+    if isinstance(val, int):
+        return val
+    if isinstance(val, float):
+        return int(val)
+    if isinstance(val, str):
+        v = val.strip()
+        if v.startswith("0x") or v.startswith("0X"):
+            try:
+                return int(v, 16)
+            except Exception:
+                return default
+        try:
+            return int(v)
+        except Exception:
+            try:
+                return int(float(v))
+            except Exception:
+                return default
+    return default
+
+
+def fetch_bsc_ankr_data(address):
+    """
+    Fetches BSC transactions and BEP-20 token balances using Ankr Advanced API.
+    Returns: (counterparts, tx_count, ok_bool, discovered_tokens, has_pancake_interaction)
+    """
+    refresh_env_keys()
+    keys = list(ANKR_API_KEYS)
+    if not keys:
+        return None, 0, False, [], False
+
+    for k in keys:
+        url = k if (k.startswith('http://') or k.startswith('https://')) else f"https://rpc.ankr.com/multichain/{k}"
+        try:
+            # 1. Fetch transactions (Native & Contract Interactions)
+            tx_payload = {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "ankr_getTransactionsByAddress",
+                "params": {
+                    "blockchain": ["bsc"],
+                    "address": address,
+                    "pageSize": 50,
+                    "descOrder": True
+                }
+            }
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(tx_payload).encode(),
+                headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}
+            )
+            counterparts = {}
+            tx_count = 0
+            has_pancake = False
+            with urllib.request.urlopen(req, timeout=6) as resp:
+                data = json.loads(resp.read().decode())
+                txs = (data.get("result") or {}).get("transactions") or []
+                tx_count = len(txs)
+                for tx in txs:
+                    f_addr = (tx.get("from") or "").strip()
+                    t_addr = (tx.get("to") or "").strip()
+                    c_addr = (tx.get("contractAddress") or "").strip()
+                    sig = tx.get("hash") or ""
+
+                    if (t_addr.lower() in PANCAKESWAP_ROUTERS or
+                        f_addr.lower() in PANCAKESWAP_ROUTERS or
+                        c_addr.lower() in PANCAKESWAP_ROUTERS):
+                        has_pancake = True
+
+                    val_raw = tx.get("value")
+                    val_native = 0.0
+                    if val_raw:
+                        try:
+                            if isinstance(val_raw, str) and val_raw.startswith("0x"):
+                                val_native = int(val_raw, 16) / 1e18
+                            else:
+                                val_native = float(val_raw) / 1e18
+                        except Exception:
+                            val_native = 0.0
+
+                    ts = safe_int_or_hex(tx.get("timestamp"))
+                    dt_str = time.strftime('%Y-%m-%d %H:%M', time.localtime(ts)) if ts else ''
+
+                    target_peer = t_addr if f_addr.lower() == address.lower() else f_addr
+                    if target_peer and target_peer.lower() != address.lower():
+                        is_contract = bool(tx.get("input") and tx.get("input") != "0x") or bool(c_addr) or (target_peer.lower() in PANCAKESWAP_ROUTERS)
+                        p_name = "PancakeSwap Router" if target_peer.lower() in PANCAKESWAP_ROUTERS else None
+                        c = counterparts.setdefault(target_peer, {
+                            "sent": 0.0, "recv": 0.0, "count": 0,
+                            "is_contract": is_contract,
+                            "name": p_name,
+                            "txs": []
+                        })
+                        c["count"] += 1
+                        if f_addr.lower() == address.lower():
+                            c["sent"] += val_native
+                            c["txs"].append({
+                                "signature": sig, "date": dt_str, "amount": round(val_native, 4),
+                                "direction": "내가 보낸 돈" if val_native > 0 else "컨트랙트 호출 / 상호작용",
+                                "symbol": "BNB" if val_native > 0 else "TX"
+                            })
+                        else:
+                            c["recv"] += val_native
+                            c["txs"].append({
+                                "signature": sig, "date": dt_str, "amount": round(val_native, 4),
+                                "direction": "내가 받은 돈" if val_native > 0 else "토큰 수신 / 상호작용",
+                                "symbol": "BNB" if val_native > 0 else "TX"
+                            })
+
+            # 2. Fetch BEP-20 token holdings
+            discovered_tokens = []
+            bal_payload = {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "ankr_getAccountBalance",
+                "params": {
+                    "blockchain": "bsc",
+                    "walletAddress": address
+                }
+            }
+            req_bal = urllib.request.Request(
+                url,
+                data=json.dumps(bal_payload).encode(),
+                headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}
+            )
+            try:
+                with urllib.request.urlopen(req_bal, timeout=6) as resp_bal:
+                    bal_data = json.loads(resp_bal.read().decode())
+                    assets = (bal_data.get("result") or {}).get("assets") or []
+                    for a in assets:
+                        t_type = (a.get("tokenType") or "").upper()
+                        if t_type == "NATIVE":
+                            continue
+                        sym = sanitize_token_text(a.get("tokenSymbol"), default="TOKEN", max_len=16)
+                        name = sanitize_token_text(a.get("tokenName"), default="Token", max_len=32)
+                        mint = (a.get("contractAddress") or "").strip()
+                        amt = float(a.get("balance") or 0.0)
+                        usd = float(a.get("balanceUsd") or 0.0)
+                        proto_id = "pancakeswap" if sym in ("CAKE", "WBNB") or mint.lower() in PANCAKESWAP_ROUTERS else None
+                        if proto_id:
+                            has_pancake = True
+                        if amt > 0:
+                            discovered_tokens.append({
+                                "symbol": sym,
+                                "name": name,
+                                "amount": amt,
+                                "value_usd": round(usd, 2),
+                                "mint": mint,
+                                "protocol_id": proto_id
+                            })
+            except Exception as e_bal:
+                logger.warning("Ankr token balance warning for %s: %s", address, e_bal)
+
+            return counterparts, tx_count, True, discovered_tokens, has_pancake
+        except Exception as e:
+            logger.warning("Ankr BSC fetch warning for %s: %s", address, e)
+            continue
+
+    return None, 0, False, [], False
+
+
+def fetch_bsc_nodereal_data(address):
+    """
+    Fetches BSC transactions and BEP-20 token balances using NodeReal MegaNode API.
+    Returns: (counterparts, tx_count, ok_bool, discovered_tokens, has_pancake_interaction)
+    """
+    refresh_env_keys()
+    keys = list(NODEREAL_API_KEYS)
+    if not keys:
+        return None, 0, False, [], False
+
+    for k in keys:
+        url = k if (k.startswith('http://') or k.startswith('https://')) else f"https://bsc-mainnet.nodereal.io/v1/{k}"
+        try:
+            # 1. Fetch transactions / asset transfers
+            tx_payload = {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "nr_getTransactionByAddress",
+                "params": [{
+                    "address": address,
+                    "category": ["external", "20"],
+                    "maxCount": "0x32"
+                }]
+            }
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(tx_payload).encode(),
+                headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}
+            )
+            counterparts = {}
+            tx_count = 0
+            has_pancake = False
+            with urllib.request.urlopen(req, timeout=6) as resp:
+                data = json.loads(resp.read().decode())
+                transfers = (data.get("result") or {}).get("transfers") or []
+                tx_count = len(transfers)
+                for tx in transfers:
+                    f_addr = (tx.get("from") or "").strip()
+                    t_addr = (tx.get("to") or "").strip()
+                    c_addr = (tx.get("contractAddress") or "").strip()
+                    sig = tx.get("hash") or ""
+                    asset_sym = (tx.get("asset") or "BNB").upper()
+
+                    if (t_addr.lower() in PANCAKESWAP_ROUTERS or
+                        f_addr.lower() in PANCAKESWAP_ROUTERS or
+                        c_addr.lower() in PANCAKESWAP_ROUTERS or
+                        asset_sym == "CAKE"):
+                        has_pancake = True
+
+                    val_raw = tx.get("value") or 0
+                    dec = safe_int_or_hex(tx.get("decimal"), 18)
+                    try:
+                        val_num = float(safe_int_or_hex(val_raw)) / (10 ** dec)
+                    except Exception:
+                        val_num = 0.0
+
+                    ts = safe_int_or_hex(tx.get("blockTimestamp"))
+                    dt_str = time.strftime('%Y-%m-%d %H:%M', time.localtime(ts)) if ts else ''
+
+                    target_peer = t_addr if f_addr.lower() == address.lower() else f_addr
+                    if target_peer and target_peer.lower() != address.lower():
+                        is_contract = bool(c_addr) or (target_peer.lower() in PANCAKESWAP_ROUTERS)
+                        p_name = "PancakeSwap Router" if target_peer.lower() in PANCAKESWAP_ROUTERS else None
+                        c = counterparts.setdefault(target_peer, {
+                            "sent": 0.0, "recv": 0.0, "count": 0,
+                            "is_contract": is_contract,
+                            "name": p_name,
+                            "txs": []
+                        })
+                        c["count"] += 1
+                        if f_addr.lower() == address.lower():
+                            c["sent"] += val_num if asset_sym == "BNB" else 0.0
+                            if val_num > 0:
+                                c["txs"].append({"signature": sig, "date": dt_str, "amount": round(val_num, 4), "direction": "내가 보낸 돈", "symbol": asset_sym})
+                        else:
+                            c["recv"] += val_num if asset_sym == "BNB" else 0.0
+                            if val_num > 0:
+                                c["txs"].append({"signature": sig, "date": dt_str, "amount": round(val_num, 4), "direction": "내가 받은 돈", "symbol": asset_sym})
+
+            # 2. Fetch BEP-20 token holdings
+            discovered_tokens = []
+            tok_payload = {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "nr_getTokenHoldings",
+                "params": [address]
+            }
+            req_tok = urllib.request.Request(
+                url,
+                data=json.dumps(tok_payload).encode(),
+                headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}
+            )
+            try:
+                with urllib.request.urlopen(req_tok, timeout=6) as resp_tok:
+                    tok_data = json.loads(resp_tok.read().decode())
+                    holdings = (tok_data.get("result") or {}).get("tokenHoldings") or []
+                    live_p = get_live_prices()
+                    bnb_p = live_p.get("BNB", 724.0)
+                    for h in holdings:
+                        sym = sanitize_token_text(h.get("tokenSymbol"), default="TOKEN", max_len=16)
+                        name = sanitize_token_text(h.get("tokenName"), default="Token", max_len=32)
+                        mint = (h.get("contractAddress") or "").strip()
+                        dec = int(h.get("tokenDecimal") or 18)
+                        raw_bal = float(h.get("balance") or 0.0)
+                        amt = raw_bal / (10 ** dec)
+                        proto_id = "pancakeswap" if sym in ("CAKE", "WBNB") or mint.lower() in PANCAKESWAP_ROUTERS else None
+                        if proto_id:
+                            has_pancake = True
+                        unit_p = 1.0 if sym in ("USDT", "USDC", "BUSD", "DAI") else (bnb_p if sym == "WBNB" else (2.75 if sym == "CAKE" else 0.0))
+                        usd = round(amt * unit_p, 2)
+                        if amt > 0:
+                            discovered_tokens.append({
+                                "symbol": sym,
+                                "name": name,
+                                "amount": amt,
+                                "value_usd": usd,
+                                "mint": mint,
+                                "protocol_id": proto_id
+                            })
+            except Exception as e_tok:
+                logger.warning("NodeReal token holding warning for %s: %s", address, e_tok)
+
+            return counterparts, tx_count, True, discovered_tokens, has_pancake
+        except Exception as e:
+            logger.warning("NodeReal BSC fetch warning for %s: %s", address, e)
+            continue
+
+    return None, 0, False, [], False
+
+
+def fetch_bsc_enhanced_data(address):
+    """
+    Unified BSC Enhanced data fetcher:
+    Tries NodeReal and Ankr in priority order for robust failover.
+    """
+    # 1. Try NodeReal MegaNode first (BNB Chain dedicated core infra)
+    res_nr = fetch_bsc_nodereal_data(address)
+    if res_nr and res_nr[2]:
+        return res_nr
+
+    # 2. Try Ankr Advanced API as failover
+    res_ankr = fetch_bsc_ankr_data(address)
+    if res_ankr and res_ankr[2]:
+        return res_ankr
+
+    return None
+
+
 def fetch_etherscan_or_bscscan_data(chain, address, return_status=False):
     """
-    Fetches EVM transaction history from Etherscan/BscScan v2/v1 or Blockscout fallback.
-    When `return_status=True`, returns `(counterparts, tx_count, tx_api_ok)`.
+    Fetches EVM transaction history from NodeReal/Ankr (BSC) or Etherscan/BscScan v2/v1 or Blockscout fallback.
+    When `return_status=True`, returns `(counterparts, tx_count, tx_api_ok, discovered_tokens, has_pancake)`.
     """
+    if chain == 'bsc':
+        enhanced_res = fetch_bsc_enhanced_data(address)
+        if enhanced_res and enhanced_res[2]:
+            c_parts, sc_count, api_ok, disc_tokens, has_pancake = enhanced_res
+            if return_status:
+                return c_parts, sc_count, api_ok, disc_tokens, has_pancake
+            return c_parts, sc_count
+
     chain_id = 1 if chain == 'ethereum' else 56
     native_sym = 'ETH' if chain == 'ethereum' else 'BNB'
     counterparts = {}
@@ -1670,11 +2104,12 @@ def analyze_solana(address):
         'volume_usd': total_recoverable,
         'radius': 26
     }]
+    links = []
     # Ensure discovered native stake accounts are included in classified_wallets & graph
     for s in overview.get('stake_accounts', []):
-        st_addr = s.get('address')
-        st_usd = s.get('value_usd', 0.0)
-        st_bal = s.get('balance_sol', 0.0)
+        st_addr = s.get('pubkey') or s.get('address')
+        st_usd = s.get('usd_value') or s.get('value_usd', 0.0)
+        st_bal = s.get('sol_amount') or s.get('balance_sol', 0.0)
         if st_addr and not any(w.get('address') == st_addr for w in classified_wallets):
             classified_wallets.insert(0, {
                 'address': st_addr,
@@ -1956,11 +2391,42 @@ def analyze_evm_live(chain, address):
         })
 
     scan_res = fetch_etherscan_or_bscscan_data(chain, address, return_status=True)
-    if isinstance(scan_res, tuple) and len(scan_res) == 3:
+    extra_tokens = []
+    has_pancake_detected = False
+    if isinstance(scan_res, tuple) and len(scan_res) >= 5:
+        counterparts, scanned_txs, tx_api_ok, extra_tokens, has_pancake_detected = scan_res
+    elif isinstance(scan_res, tuple) and len(scan_res) == 3:
         counterparts, scanned_txs, tx_api_ok = scan_res
     else:
         counterparts, scanned_txs = scan_res
         tx_api_ok = counterparts is not None
+
+    if extra_tokens:
+        seen_extra = set(t['mint'].lower() for t in portfolio if t.get('mint'))
+        for et in extra_tokens:
+            if et.get('mint') and et['mint'].lower() not in seen_extra:
+                portfolio.append(et)
+                seen_extra.add(et['mint'].lower())
+        blockscout_tokens_ok = True
+
+    if chain == 'bsc':
+        pancake_in_counterparts = any(c_a.lower() in PANCAKESWAP_ROUTERS for c_a in counterparts.keys())
+        if has_pancake_detected or pancake_in_counterparts:
+            has_external_protocol = True
+            if not any(r.get('protocol_id') == 'pancakeswap' for r in recovery_targets):
+                recovery_targets.append({
+                    'id': f'proto_{chain}_pancakeswap',
+                    'chain': chain,
+                    'chain_badge': chain_tag,
+                    'title': '[BNB] PancakeSwap (팬케이크스왑) DEX 스왑 및 유동성 상호작용 이력',
+                    'protocol_id': 'pancakeswap',
+                    'protocol_name': 'PancakeSwap (팬케이크스왑)',
+                    'amount_desc': '스왑 및 풀 참여 이력 감지됨',
+                    'value_usd': 0.0,
+                    'badge': 'DEX 스왑 및 LP 풀 확인 권장',
+                    'description': '지갑 온체인 트랜잭션 기록에서 PancakeSwap Router와의 상호작용 이력이 확인되었습니다. 미수령 리워드(CAKE), 만기된 시럽 풀(Finished Syrup Pool), 또는 미해제 유동성(LP) 풀이 남아있는지 공식 풀에서 확인해 보세요.',
+                    'official_url': 'https://pancakeswap.finance/pools'
+                })
 
     total_tx_display = max(nonce, scanned_txs)
 
@@ -2054,7 +2520,7 @@ def analyze_evm_live(chain, address):
 
     balance_ok = (bal_hex is not None)
     nonce_ok = (nonce_hex is not None)
-    tokens_ok = bool(blockscout_tokens_ok) and rpc_tokens_ok
+    tokens_ok = (bool(blockscout_tokens_ok) or bool(extra_tokens)) and rpc_tokens_ok
     transactions_ok = (nonce == 0 and tx_api_ok) or (scanned_txs > 0) or (tx_api_ok and counterparts is not None)
 
     stage_status = {

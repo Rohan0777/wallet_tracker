@@ -2734,8 +2734,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function updateAadsTheme() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const iframe728 = document.getElementById('aads-728-iframe');
+    const iframe300 = document.getElementById('aads-300-iframe');
+    const iframe300TopMobile = document.getElementById('aads-300-top-mobile-iframe');
+    if (isDark) {
+      if (iframe728) iframe728.src = 'https://ad.a-ads.com/2459088/?size=728x90&background_color=131722&title_color=818CF8&title_hover_color=1C2230&text_color=CBD5E1&link_color=1C2230&link_hover_color=1C2230';
+      if (iframe300) iframe300.src = 'https://ad.a-ads.com/2459087/?size=300x250&background_color=131722&title_color=818CF8&title_hover_color=1C2230&text_color=CBD5E1&link_color=1C2230&link_hover_color=1C2230';
+      if (iframe300TopMobile) iframe300TopMobile.src = 'https://ad.a-ads.com/2459087/?size=300x250&background_color=131722&title_color=818CF8&title_hover_color=1C2230&text_color=CBD5E1&link_color=1C2230&link_hover_color=1C2230';
+    } else {
+      if (iframe728) iframe728.src = 'https://ad.a-ads.com/2459088/?size=728x90&background_color=CBD5E1&title_color=4F46E5&title_hover_color=312E81&text_color=0F172A&link_color=4F46E5&link_hover_color=312E81';
+      if (iframe300) iframe300.src = 'https://ad.a-ads.com/2459087/?size=300x250&background_color=CBD5E1&title_color=4F46E5&title_hover_color=312E81&text_color=0F172A&link_color=4F46E5&link_hover_color=312E81';
+      if (iframe300TopMobile) iframe300TopMobile.src = 'https://ad.a-ads.com/2459087/?size=300x250&background_color=CBD5E1&title_color=4F46E5&title_hover_color=312E81&text_color=0F172A&link_color=4F46E5&link_hover_color=312E81';
+    }
+  }
+
   document.getElementById('themeToggle').addEventListener('click', () => {
     document.documentElement.classList.toggle('dark');
+    updateAadsTheme();
     if (currentData) {
       renderGraph(currentData.graph_data);
     }
