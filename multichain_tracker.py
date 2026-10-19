@@ -43,13 +43,22 @@ logger = logging.getLogger(__name__)
 # Dedicated per-chain RPC rate-limit semaphores & overall scan deadline
 _SOL_RPC_SEM = threading.BoundedSemaphore(6)
 _EVM_RPC_SEM = threading.BoundedSemaphore(8)
-_SHARED_SCAN_POOL = concurrent.futures.ThreadPoolExecutor(max_workers=24)
 _DEADLINE_LOCAL = threading.local()
 SCAN_DEADLINE_SECONDS = float(os.environ.get('SCAN_DEADLINE_SECONDS', '15.0'))
 
 
 def set_scan_deadline(deadline_mono=None):
     _DEADLINE_LOCAL.deadline = deadline_mono
+
+
+def _deadline_executor(max_workers: int) -> concurrent.futures.ThreadPoolExecutor:
+    """Creates a ThreadPoolExecutor that propagates the current thread's scan deadline to worker threads."""
+    parent_dl = getattr(_DEADLINE_LOCAL, 'deadline', None)
+    return concurrent.futures.ThreadPoolExecutor(
+        max_workers=max_workers,
+        initializer=set_scan_deadline,
+        initargs=(parent_dl,)
+    )
 
 
 def get_remaining_timeout(default_timeout: float = 4.0) -> float:
@@ -947,7 +956,7 @@ def fetch_cross_chain_bridge_outflows(address: str):
             pass
         return hops
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:
+    with _deadline_executor(3) as ex:
         f_wh = ex.submit(_query_wormhole)
         f_lifi = ex.submit(_query_lifi)
         f_dln = ex.submit(_query_debridge)
@@ -1005,7 +1014,7 @@ def get_sol_wallet_overview(wallet_address):
     Queries live Solana RPC for native balance, SPL & Token-2022 accounts, and native Stake accounts.
     v9.0 Integrity Guarantee: ZERO preset dummy fallback (`_load_cached_sol_overview` removed).
     """
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as ex:
+    with _deadline_executor(5) as ex:
         f_bal = ex.submit(sol_rpc_call, 'getBalance', [wallet_address])
         f_t1 = ex.submit(sol_rpc_call, 'getTokenAccountsByOwner', [wallet_address, {'programId': 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'}, {'encoding': 'jsonParsed'}])
         f_t2 = ex.submit(sol_rpc_call, 'getTokenAccountsByOwner', [wallet_address, {'programId': 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'}, {'encoding': 'jsonParsed'}])
@@ -1169,7 +1178,7 @@ def get_sol_transactions(wallet_address):
 
     if isinstance(sigs_res, list) and sigs_res:
         ordered_sigs = [s for s in sigs_res[:12] if isinstance(s, dict) and s.get('signature')]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
+        with _deadline_executor(6) as ex:
             tx_results = list(ex.map(
                 lambda s: (s, sol_rpc_call('getTransaction', [s['signature'], {'encoding': 'jsonParsed', 'maxSupportedTransactionVersion': 0}])),
                 ordered_sigs
@@ -1261,7 +1270,7 @@ def get_sol_transactions(wallet_address):
             key=lambda x: (x[1]['count'], x[1]['sent'] + x[1]['recv']),
             reverse=True
         )[:15]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
+        with _deadline_executor(8) as ex:
             classified_wallets = list(ex.map(_inspect_sol_counterpart, sorted_counterparts))
 
     return {'classified_wallets': classified_wallets, 'is_partial': not tx_ok}
@@ -1730,7 +1739,7 @@ def analyze_evm_live(chain, address):
     native_price = live_p.get('ETH', 2380.0) if chain == 'ethereum' else live_p.get('BNB', 724.0)
     blockscout_api = 'https://eth.blockscout.com/api/v2' if chain == 'ethereum' else 'https://bsc.blockscout.com/api/v2'
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:
+    with _deadline_executor(3) as ex:
         f_bal = ex.submit(evm_rpc, rpc_url, 'eth_getBalance', [address, 'latest'])
         f_nonce = ex.submit(evm_rpc, rpc_url, 'eth_getTransactionCount', [address, 'latest'])
         f_tokens = ex.submit(fetch_blockscout_tokens, blockscout_api, address)
@@ -1809,7 +1818,7 @@ def analyze_evm_live(chain, address):
 
     unseen_tokens = [t for t in tokens_to_check if t[2].lower() not in seen_mints]
     if unseen_tokens:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=min(8, len(unseen_tokens))) as ex:
+        with _deadline_executor(min(8, len(unseen_tokens))) as ex:
             for tok_res, tok_ok in ex.map(_check_evm_token, unseen_tokens):
                 if not tok_ok:
                     rpc_tokens_ok = False
@@ -1850,7 +1859,7 @@ def analyze_evm_live(chain, address):
                 pass
             return None
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=len(l2_networks)) as ex:
+        with _deadline_executor(len(l2_networks)) as ex:
             for l2_res in ex.map(_check_l2_balance, l2_networks):
                 if l2_res:
                     portfolio.append(l2_res)
@@ -2006,7 +2015,7 @@ def analyze_evm_live(chain, address):
             key=lambda x: (x[1]['count'], x[1]['sent'] + x[1]['recv']),
             reverse=True
         )[:18]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
+        with _deadline_executor(8) as ex:
             classified_wallets = list(ex.map(_inspect_evm_peer, sorted_peers))
 
     classified_wallets.sort(key=lambda x: (
@@ -2275,7 +2284,7 @@ def analyze_tron_live(address):
                 'reason': profile['reason']
             }
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
+        with _deadline_executor(6) as ex:
             classified_wallets = list(ex.map(_inspect_tron_peer, sorted_tron_counterparts))
 
         classified_wallets.sort(key=lambda x: (
@@ -2427,7 +2436,7 @@ def analyze_unified_multichain(raw_address_str: str = None):
     # 1. Discover cross-chain bridge outflows from all input addresses in parallel
     input_addrs = bundle['solana'] + bundle['evm'] + bundle['tron']
     bridge_hops = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+    with _deadline_executor(6) as executor:
         hop_futures = {executor.submit(fetch_cross_chain_bridge_outflows, a): a for a in input_addrs}
         for fut in concurrent.futures.as_completed(hop_futures):
             try:
@@ -2439,7 +2448,7 @@ def analyze_unified_multichain(raw_address_str: str = None):
 
     # 2. Fan-out parallel scans across all chains in the bundle
     tasks = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+    with _deadline_executor(8) as executor:
         for s_addr in bundle['solana']:
             tasks.append(('solana', s_addr, executor.submit(analyze_solana, s_addr)))
         for e_addr in bundle['evm']:

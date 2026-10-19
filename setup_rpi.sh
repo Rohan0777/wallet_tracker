@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # ======================================================================
-# Wake Up Crypto - Raspberry Pi 4B / Linux Safe Setup & Deploy Script (v9.1)
+# Wake Up Crypto - Raspberry Pi + Cloudflare Zero Trust Deploy Script (v9.1)
 # ======================================================================
 set -euo pipefail
 
 echo "========================================================"
-echo " [1/5] Checking Environment & File Integrity..."
+echo " [1/6] Checking Environment & File Integrity..."
 echo "========================================================"
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,7 +20,7 @@ for f in "${REQUIRED_FILES[@]}"; do
     fi
 done
 
-# Safe cache directory initialization (NO destructive deletion of git or deployment configs)
+# Safe cache directory initialization
 mkdir -p data_cache
 
 # Environment configuration
@@ -40,7 +40,7 @@ else
 fi
 
 echo "========================================================"
-echo " [2/5] Checking Docker & Docker Compose..."
+echo " [2/6] Checking Docker & Docker Compose..."
 echo "========================================================"
 if ! command -v docker &> /dev/null; then
     echo "--> Installing Docker..."
@@ -52,52 +52,69 @@ if ! command -v docker &> /dev/null; then
 fi
 
 echo "========================================================"
-echo " [3/5] Verifying Production Compose Configuration..."
+echo " [3/6] Generating Cloudflare Zero Trust + RPi Compose Config..."
 echo "========================================================"
-# Maintain safe docker-compose.yml referencing project root Dockerfile
-if [ ! -f "docker-compose.yml" ]; then
-    cat << 'EOF' > docker-compose.yml
+cat << 'EOF' > docker-compose.yml
 services:
   crypto-detective:
     build: .
     container_name: crypto-detective
     restart: unless-stopped
     ports:
-      - "8088:8088"
+      - "${HOST_BIND_IP:-0.0.0.0}:${PORT:-8088}:8088"
     env_file:
       - .env
     environment:
-      - CACHE_TTL_SECONDS=900
-      - RATE_LIMIT_PER_MIN=25
-      - TRUST_PROXY_HEADERS=false
+      - CACHE_TTL_SECONDS=${CACHE_TTL_SECONDS:-900}
+      - RATE_LIMIT_PER_MIN=${RATE_LIMIT_PER_MIN:-25}
+      - TRUST_PROXY_HEADERS=${TRUST_PROXY_HEADERS:-true}
+      - PROXY_STRATEGY=${PROXY_STRATEGY:-cloudflare}
+      - PROXY_CLIENT_IP_HEADER=${PROXY_CLIENT_IP_HEADER:-cf-connecting-ip}
+      - TRUSTED_PROXIES=${TRUSTED_PROXIES:-127.0.0.1,::1,172.16.0.0/12,10.0.0.0/8,192.168.0.0/16}
+      - CSP_MODE=${CSP_MODE:-report-only}
     tmpfs:
       - /app/data_cache:size=32m,uid=1000,gid=1000
     security_opt:
       - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8088/healthz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     deploy:
       resources:
         limits:
           memory: 384M
           cpus: '1.5'
 EOF
-    echo "--> Created default docker-compose.yml"
-fi
+echo "--> Updated docker-compose.yml (Cloudflare Zero Trust & RPi SD-card log rotation enabled)"
 
 echo "========================================================"
-echo " [4/5] Building & Launching Container Safely..."
+echo " [4/6] Building & Launching Container Safely..."
 echo "========================================================"
-# Use graceful build & recreate without killing unrelated system containers
 docker compose build
 docker compose up -d
 
 echo "========================================================"
-echo " [5/5] Verifying Container Health..."
+echo " [5/6] Verifying Container Health..."
 echo "========================================================"
 sleep 3
 if docker ps --filter "name=crypto-detective" --filter "status=running" | grep -q crypto-detective; then
     echo ">>> Setup Completed Successfully! Container 'crypto-detective' is running."
-    echo ">>> Check running container: docker ps"
-    echo ">>> View logs: docker compose logs -f"
+    echo ">>> Healthcheck: $(curl -fsS http://localhost:8088/healthz || echo 'starting...')"
 else
     echo "Warning: Container may not have started properly. Check: docker compose logs"
 fi
+
+echo "========================================================"
+echo " [6/6] Cloudflare Zero Trust (cloudflared) Tunnel Guide"
+echo "========================================================"
+echo " 1. Cloudflare Zero Trust Dashboard -> Networks -> Tunnels -> Public Hostname"
+echo " 2. Service Type: HTTP | URL: localhost:8088"
+echo " 3. Real visitor IPs are automatically parsed via CF-Connecting-IP header."

@@ -423,8 +423,9 @@ def get_client_ip(request: Request) -> str:
 
     if TRUST_PROXY_HEADERS and is_trusted_proxy_peer(peer_ip):
         # Only ONE proxy-supplied source is trusted, so a client cannot win by forging another header.
-        if PROXY_CLIENT_IP_HEADER:
-            val = request.headers.get(PROXY_CLIENT_IP_HEADER)
+        eff_header = PROXY_CLIENT_IP_HEADER or ("cf-connecting-ip" if PROXY_STRATEGY == "cloudflare" else "")
+        if eff_header:
+            val = request.headers.get(eff_header)
             if val and is_valid_ip(val):
                 return val.strip().split("%")[0]
         else:
@@ -547,6 +548,7 @@ app = FastAPI(
     version=__version__,
     docs_url=None,
     redoc_url=None,
+    openapi_url=None,
     lifespan=lifespan
 )
 app.add_middleware(GZipMiddleware, minimum_size=500)
@@ -574,9 +576,9 @@ async def add_security_headers(request: Request, call_next):
         "connect-src 'self'; img-src 'self' data: https:;"
     )
     path = request.url.path
-    if path.startswith("/static/"):
+    if path == "/" or path.startswith("/static/"):
         response.headers["Cache-Control"] = "no-cache, must-revalidate"
-    elif path.startswith("/api/"):
+    elif path == "/healthz" or path.startswith("/api/"):
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     return response
 
@@ -584,7 +586,7 @@ async def add_security_headers(request: Request, call_next):
 # ---------------------------------------------------------------------
 # REST API Endpoints
 # ---------------------------------------------------------------------
-@app.get("/healthz")
+@app.api_route("/healthz", methods=["GET", "HEAD"])
 def healthcheck():
     return {
         "status": "ok",
@@ -752,7 +754,7 @@ async def get_analysis(
         )
 
 
-@app.get("/ads.txt")
+@app.api_route("/ads.txt", methods=["GET", "HEAD"])
 def serve_ads():
     ads_file = os.path.join(BASE_DIR, "ads.txt")
     if os.path.exists(ads_file):
@@ -765,7 +767,7 @@ os.makedirs(static_dir, exist_ok=True)
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def serve_index():
     index_file = os.path.join(static_dir, "index.html")
     if os.path.exists(index_file):

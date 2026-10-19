@@ -46,9 +46,19 @@ class TestV90FinalSuite(unittest.TestCase):
         server.reset_server_state()
         server.TRUST_PROXY_HEADERS = False
         server.ADMIN_API_KEY = ""
+        server.PROXY_STRATEGY = "right_hop"
+        server.PROXY_CLIENT_IP_HEADER = ""
+        server.TRUSTED_PROXY_HOPS = 1
+        server.TRUSTED_PROXIES_RAW = ""
 
     def tearDown(self):
         server.reset_server_state()
+        server.TRUST_PROXY_HEADERS = False
+        server.ADMIN_API_KEY = ""
+        server.PROXY_STRATEGY = "right_hop"
+        server.PROXY_CLIENT_IP_HEADER = ""
+        server.TRUSTED_PROXY_HOPS = 1
+        server.TRUSTED_PROXIES_RAW = ""
 
     # -------------------------------------------------------------------------
     # 1. P0: Singleflight Coalescing under Heavy Saturation on Actual Endpoint
@@ -949,6 +959,78 @@ class TestV90FinalSuite(unittest.TestCase):
         self.assertNotIn("Content-Security-Policy-Report-Only", res_enf.headers)
         server.CSP_MODE = "report-only"
         server.PROXY_CLIENT_IP_HEADER = ""
+
+
+
+    def test_v9_1_cloudflare_zerotrust_and_web_serving_hardening(self):
+        """
+        Verifies final pre-deployment improvements for Raspberry Pi + Cloudflare Zero Trust:
+        1. HEAD requests on /, /healthz, and /ads.txt return 200 OK for uptime & tunnel monitors
+        2. GET /openapi.json returns 404 (schema exposure disabled)
+        3. GET / and /healthz include explicit Cache-Control headers
+        4. Cloudflare Zero Trust proxy config (PROXY_STRATEGY='cloudflare', cf-connecting-ip,
+           Docker bridge peer 172.18.0.1) extracts real visitor IP and falls back cleanly on LAN
+        5. _deadline_executor propagates _DEADLINE_LOCAL.deadline into child worker threads
+        6. Frontend static/app.js removes legacy '4.13 SOL' badge strings and binds partnerAdConfig.affiliate_url
+        """
+        with TestClient(server.app) as client:
+            for route in ("/", "/healthz", "/ads.txt"):
+                head_resp = client.head(route)
+                self.assertEqual(head_resp.status_code, 200, f"HEAD {route} failed")
+
+            openapi_resp = client.get("/openapi.json")
+            self.assertEqual(openapi_resp.status_code, 404)
+
+            root_resp = client.get("/")
+            self.assertEqual(root_resp.status_code, 200)
+            self.assertEqual(root_resp.headers.get("cache-control"), "no-cache, must-revalidate")
+
+            hz_resp = client.get("/healthz")
+            self.assertEqual(hz_resp.headers.get("cache-control"), "no-cache, no-store, must-revalidate")
+
+        # Cloudflare Zero Trust on Raspberry Pi (cloudflared via Docker bridge 172.18.0.1)
+        server.TRUST_PROXY_HEADERS = True
+        server.PROXY_STRATEGY = "cloudflare"
+        server.PROXY_CLIENT_IP_HEADER = "cf-connecting-ip"
+        server.TRUSTED_PROXIES_RAW = "127.0.0.1, ::1, 172.16.0.0/12, 10.0.0.0/8, 192.168.0.0/16"
+
+        class CfTunnelReq:
+            headers = {
+                "cf-connecting-ip": "203.0.113.88",
+                "x-forwarded-for": "1.2.3.4, 203.0.113.88"
+            }
+            client = type("Client", (), {"host": "172.18.0.1"})()
+
+        self.assertEqual(server.get_client_ip(CfTunnelReq()), "203.0.113.88")
+
+        # Direct LAN request on Raspberry Pi without cf-connecting-ip header falls back to LAN peer IP
+        class LanDirectReq:
+            headers = {"x-forwarded-for": "8.8.8.8"}
+            client = type("Client", (), {"host": "192.168.1.55"})()
+
+        self.assertEqual(server.get_client_ip(LanDirectReq()), "192.168.1.55")
+
+        # ThreadPoolExecutor deadline propagation check
+        expired_dl = time.monotonic() - 1.0
+        multichain_tracker.set_scan_deadline(expired_dl)
+        try:
+            with multichain_tracker._deadline_executor(2) as ex:
+                child_rem = ex.submit(multichain_tracker.get_remaining_timeout, 4.0).result()
+            self.assertEqual(child_rem, 0.0)
+        finally:
+            multichain_tracker.set_scan_deadline(None)
+
+        # Frontend static/app.js & static/index.html verification
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(base_dir, "static", "app.js"), "r", encoding="utf-8") as f:
+            js_code = f.read()
+        self.assertNotIn("4.13 SOL", js_code)
+        self.assertNotIn('href="https://www.ledger.com"', js_code)
+        self.assertIn("function detectInputChain(", js_code)
+
+        with open(os.path.join(base_dir, "static", "index.html"), "r", encoding="utf-8") as f:
+            html_code = f.read()
+        self.assertNotIn("backdrop-blur-xs", html_code)
 
 
 if __name__ == "__main__":

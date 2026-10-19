@@ -103,7 +103,7 @@ const I18N = {
     coffeeCopyBtn: '복사',
     blankProtocol: '— (공란 · 연관 외부 프로토콜 없음)',
     badgeUnified: '4대 체인 · 브릿지 통합조회',
-    badgeSolana: '4.13 SOL 네이티브 스테이킹',
+    badgeSolana: '실시간 SPL · 스테이킹 조회',
     badgeEthereum: '실시간 ERC-20 조회',
     badgeBsc: '실시간 BEP-20 조회',
     badgeTron: '실시간 TRC-20 조회',
@@ -199,7 +199,7 @@ const I18N = {
     coffeeCopyBtn: 'Copy',
     blankProtocol: '— (Blank · No External Protocol)',
     badgeUnified: '4 Chains + Bridge Scan',
-    badgeSolana: '4.13 SOL Native Staking',
+    badgeSolana: 'Live SPL & Staking Scan',
     badgeEthereum: 'Live ERC-20 Scan',
     badgeBsc: 'Live BEP-20 Scan',
     badgeTron: 'Live TRC-20 Scan',
@@ -295,7 +295,7 @@ const I18N = {
     coffeeCopyBtn: '复制',
     blankProtocol: '— (空白 · 无关联外部协议)',
     badgeUnified: '4大公链 · 跨链桥整合查询',
-    badgeSolana: '4.13 SOL 原生质押',
+    badgeSolana: '实时 SPL · 原生质押查询',
     badgeEthereum: '实时 ERC-20 查询',
     badgeBsc: '实时 BEP-20 查询',
     badgeTron: '实时 TRC-20 查询',
@@ -391,7 +391,7 @@ const I18N = {
     coffeeCopyBtn: 'コピー',
     blankProtocol: '— (空欄 · 外部プロトコルなし)',
     badgeUnified: '4大チェーン・ブリッジ統合照会',
-    badgeSolana: '4.13 SOL ネイティブステーキング',
+    badgeSolana: 'リアルタイム SPL・ステーキング照会',
     badgeEthereum: 'リアルタイム ERC-20 照会',
     badgeBsc: 'リアルタイム BEP-20 照会',
     badgeTron: 'リアルタイム TRC-20 照会',
@@ -487,7 +487,7 @@ const I18N = {
     coffeeCopyBtn: 'Copiar',
     blankProtocol: '— (En blanco · Sin protocolo externo)',
     badgeUnified: '4 Cadenas y Puentes',
-    badgeSolana: '4.13 SOL Staking Nativo',
+    badgeSolana: 'SPL y Staking en vivo',
     badgeEthereum: 'ERC-20 en vivo',
     badgeBsc: 'BEP-20 en vivo',
     badgeTron: 'TRC-20 en vivo',
@@ -583,7 +583,7 @@ const I18N = {
     coffeeCopyBtn: 'Копировать',
     blankProtocol: '— (Пусто · Нет внешнего протокола)',
     badgeUnified: '4 сети и мосты',
-    badgeSolana: '4.13 SOL Нативный стейкинг',
+    badgeSolana: 'SPL и стейкинг онлайн',
     badgeEthereum: 'ERC-20 онлайн',
     badgeBsc: 'BEP-20 онлайн',
     badgeTron: 'TRC-20 онлайн',
@@ -1978,7 +1978,7 @@ function renderRecoveryTargets(targets, hasExternalProtocol) {
             ${dict.sponsoredAdDesc}
           </p>
         </div>
-        <a href="https://www.ledger.com" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold shrink-0 transition">
+        <a href="${esc(safeHttpsUrl(partnerAdConfig.affiliate_url, 'https://shop.ledger.com'))}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold shrink-0 transition">
           ${dict.sponsoredAdCta}
         </a>
       </div>
@@ -2121,7 +2121,7 @@ function renderSheetProtocolTier(protoId, address, explorerFullUrl) {
       <div class="inner-box rounded-xl p-3 border-dashed border-amber-500/50 space-y-1.5">
         <div class="flex items-center justify-between">
           <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-800 dark:text-amber-300">${dict.sheetAdBadge}</span>
-          <a href="https://www.ledger.com" target="_blank" rel="noopener noreferrer" class="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline">${dict.sheetAdLink}</a>
+          <a href="${esc(safeHttpsUrl(partnerAdConfig.affiliate_url, 'https://shop.ledger.com'))}" target="_blank" rel="noopener noreferrer" class="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline">${dict.sheetAdLink}</a>
         </div>
         <p class="text-[11px] text-slate-700 dark:text-slate-300">
           ${dict.sheetAdDesc}
@@ -2583,9 +2583,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  function detectInputChain(raw, activeChain) {
+    const tokens = String(raw ?? '').trim().split(/[,;\s]+/).filter(Boolean);
+    if (tokens.length > 1) return 'unified';
+    if (tokens.length === 1 && activeChain !== 'unified') {
+      const t = tokens[0];
+      const isEvm = /^0x[0-9a-fA-F]{40}$/.test(t);
+      const isTron = /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(t);
+      const isSol = !isEvm && !isTron && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(t);
+      if (isEvm && activeChain !== 'ethereum' && activeChain !== 'bsc') return 'ethereum';
+      if (isTron && activeChain !== 'tron') return 'tron';
+      if (isSol && activeChain !== 'solana') return 'solana';
+    }
+    return activeChain;
+  }
+
   function runSearch() {
     const addr = document.getElementById('addressInput').value.trim();
     if (!addr) return;
+    const targetChain = detectInputChain(addr, currentChain);
+    if (targetChain !== currentChain) {
+      switchChainWithAddress(targetChain, addr);
+      return;
+    }
     const same = currentData && currentData.chain === currentChain &&
       (currentData.address || '').toLowerCase() === addr.toLowerCase();
     loadAnalysis(currentChain, addr, !!same);
