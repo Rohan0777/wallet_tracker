@@ -208,47 +208,53 @@
   <div class="app-shell w-full max-w-6xl min-h-screen flex flex-col shadow-2xl relative border-x pb-12">
 
     <!-- Top Sticky Navigation Bar -->
-    <header class="top-nav sticky top-0 z-40 backdrop-blur-xl px-4 sm:px-6 py-3 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-xl bg-indigo-600/15 dark:bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-inner">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
-          </svg>
-        </div>
-        <div>
-          <div class="flex items-center gap-2">
-            <h1 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight" id="txt-app-title">Wake Up Crypto</h1>
+    <header class="top-nav sticky top-0 z-40 backdrop-blur-xl border-b border-slate-300 dark:border-white/[0.07]">
+      <!-- Row 1: Logo, Title & Header Action Controls (Single Compact Line) -->
+      <div class="px-3.5 sm:px-6 py-2.5 flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5 shrink-0">
+          <div class="w-8 h-8 rounded-xl bg-indigo-600/15 dark:bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-inner shrink-0">
+            <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+            </svg>
           </div>
-          <p class="text-[11px] text-slate-600 dark:text-slate-400" id="txt-app-desc">다계정 에어드랍 지갑 역추적 & 방치 자산 스캐너</p>
+          <h1 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight whitespace-nowrap" id="txt-app-title">Wake Up Crypto</h1>
+        </div>
+
+        <!-- Right Controls: Language, Recovery Funnel, Buy Me a Coffee, Theme -->
+        <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <select id="langSelect" aria-label="Language" class="inner-box text-slate-800 dark:text-slate-200 text-[11px] sm:text-xs font-medium rounded-lg px-2 sm:px-2.5 py-1.5 outline-none focus:border-indigo-500 transition cursor-pointer">
+            <option value="ko">🇰🇷 한국어</option>
+            <option value="en">🇺🇸 English</option>
+            <option value="zh">🇨🇳 中文</option>
+            <option value="ja">🇯🇵 日本語</option>
+            <option value="es">🇪🇸 Español</option>
+            <option value="ru">🇷🇺 Русский</option>
+          </select>
+
+          <button id="openRecoveryTopBtn" class="px-2 sm:px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-800 dark:text-emerald-300 border border-emerald-600/40 dark:border-emerald-500/30 font-semibold text-[11px] sm:text-xs flex items-center gap-1 sm:gap-1.5 transition shrink-0" title="찾은 자산 회수 및 제휴 수수료 할인 가이드">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"></i>
+            <span id="txt-btn-recovery-top" class="hidden sm:inline">회수·보안 혜택</span>
+          </button>
+
+          <button id="openCoffeeBtn" class="px-2 sm:px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-800 dark:text-amber-300 border border-amber-600/40 dark:border-amber-500/30 font-semibold text-[11px] sm:text-xs flex items-center gap-1 sm:gap-1.5 transition shrink-0">
+            <i data-lucide="coffee" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
+            <span id="txt-btn-coffee" class="hidden sm:inline">커피 후원</span>
+          </button>
+
+          <button id="themeToggle" class="inner-box p-1.5 rounded-lg text-slate-700 dark:text-slate-300 transition shrink-0" title="라이트/다크 테마 전환">
+            <i data-lucide="sun" class="w-4 h-4 hidden dark:block text-amber-400"></i>
+            <i data-lucide="moon" class="w-4 h-4 block dark:hidden text-slate-700"></i>
+          </button>
         </div>
       </div>
 
-      <!-- Right Controls: Language, Recovery Funnel, Buy Me a Coffee, Theme -->
-      <div class="flex items-center gap-2">
-        <select id="langSelect" aria-label="Language" class="inner-box text-slate-800 dark:text-slate-200 text-xs font-medium rounded-lg px-2.5 py-1.5 outline-none focus:border-indigo-500 transition cursor-pointer">
-          <option value="ko">🇰🇷 한국어</option>
-          <option value="en">🇺🇸 English</option>
-          <option value="zh">🇨🇳 中文</option>
-          <option value="ja">🇯🇵 日本語</option>
-          <option value="es">🇪🇸 Español</option>
-          <option value="ru">🇷🇺 Русский</option>
-        </select>
-
-        <button id="openRecoveryTopBtn" class="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-800 dark:text-emerald-300 border border-emerald-600/40 dark:border-emerald-500/30 font-semibold text-xs flex items-center gap-1.5 transition" title="찾은 자산 회수 및 제휴 수수료 할인 가이드">
-          <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"></i>
-          <span id="txt-btn-recovery-top" class="hidden sm:inline">회수·보안 혜택</span>
-        </button>
-
-        <button id="openCoffeeBtn" class="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-800 dark:text-amber-300 border border-amber-600/40 dark:border-amber-500/30 font-semibold text-xs flex items-center gap-1.5 transition">
-          <i data-lucide="coffee" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
-          <span id="txt-btn-coffee" class="hidden sm:inline">커피 후원</span>
-        </button>
-
-        <button id="themeToggle" class="inner-box p-1.5 rounded-lg text-slate-700 dark:text-slate-300 transition" title="라이트/다크 테마 전환">
-          <i data-lucide="sun" class="w-4 h-4 hidden dark:block text-amber-400"></i>
-          <i data-lucide="moon" class="w-4 h-4 block dark:hidden text-slate-700"></i>
-        </button>
+      <!-- Row 2: Sub-headline Bar (Full single-line horizontal alignment below controls, prevents vertical height stretching on mobile) -->
+      <div class="px-3.5 sm:px-6 py-1 border-t border-slate-300/70 dark:border-white/[0.05] bg-slate-100/60 dark:bg-obsidian-900/60 flex items-center">
+        <p class="text-[10px] sm:text-[11px] text-slate-600 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis leading-tight tracking-tight flex items-center gap-1.5" id="txt-app-desc">
+          <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0 inline-block"></span>
+          다계정 에어드랍 지갑 역추적 & 방치 자산 스캐너
+        </p>
       </div>
     </header>
 
