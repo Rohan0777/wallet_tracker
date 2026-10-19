@@ -109,7 +109,7 @@ const I18N = {
     badgeTron: '실시간 TRC-20 조회',
     rootWalletLabel: '내 메인 조회 지갑 (Root Address)',
     rootWalletReason: '현재 스캔 기준이 되는 중심 지갑입니다.',
-    rateLimitBadge: '스캔 제한: <strong class="text-slate-800 dark:text-slate-200">분당 최대 25회 (약 2.4초당 1회)</strong> · 15분 캐시 보호',
+    rateLimitBadge: '스캔 제한: <strong class="text-slate-800 dark:text-slate-200">10초당 1회</strong>',
     scanCooldown: '조회 대기 중... ({sec}초 후 가능)',
     rateLimitExceeded: '분당 최대 실시간 스캔 횟수(25회)를 초과했습니다. 잠시 후 다시 시도해 주세요.',
     networkError: '네트워크 또는 서버 응답 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
@@ -205,7 +205,7 @@ const I18N = {
     badgeTron: 'Live TRC-20 Scan',
     rootWalletLabel: 'Main Scan Wallet (Root Address)',
     rootWalletReason: 'Root central wallet for the current scan.',
-    rateLimitBadge: 'Scan Rate: <strong class="text-slate-800 dark:text-slate-200">Max 25/min (~1 per 2.4s)</strong> · 15m Cache',
+    rateLimitBadge: 'Scan Rate: <strong class="text-slate-800 dark:text-slate-200">1 scan per 10s</strong>',
     scanCooldown: 'Cooldown... (wait {sec}s)',
     rateLimitExceeded: 'Scan limit exceeded (max 25 requests/min). Please try again shortly.',
     networkError: 'Network or server error occurred. Please try again shortly.',
@@ -301,7 +301,7 @@ const I18N = {
     badgeTron: '实时 TRC-20 查询',
     rootWalletLabel: '主查询钱包 (Root Address)',
     rootWalletReason: '当前链上扫描分析的基准核心钱包。',
-    rateLimitBadge: '扫描限制: <strong class="text-slate-800 dark:text-slate-200">每分钟最多25次 (约2.4秒1次)</strong> · 15分钟缓存',
+    rateLimitBadge: '扫描限制: <strong class="text-slate-800 dark:text-slate-200">每10秒1次</strong>',
     scanCooldown: '冷却中... (请等待 {sec} 秒)',
     rateLimitExceeded: '超出每分钟最大扫描次数 (25次)，请稍后再试。',
     networkError: '网络或服务器错误，请稍后再试。',
@@ -397,7 +397,7 @@ const I18N = {
     badgeTron: 'リアルタイム TRC-20 照会',
     rootWalletLabel: 'メイン照会ウォレット (Root Address)',
     rootWalletReason: '現在のスキャン基準となる中心ウォレットです。',
-    rateLimitBadge: 'スキャン制限: <strong class="text-slate-800 dark:text-slate-200">毎分最大25回 (約2.4秒に1回)</strong> · 15分キャッシュ',
+    rateLimitBadge: 'スキャン制限: <strong class="text-slate-800 dark:text-slate-200">10秒に1回</strong>',
     scanCooldown: '待機中... ({sec}秒後に再試行可能)',
     rateLimitExceeded: '1分あたりの最大スキャン回数(25回)を超過しました。しばらくしてから再試行してください。',
     networkError: 'ネットワークまたはサーバーエラーが発生しました。しばらくしてから再試行してください。',
@@ -493,7 +493,7 @@ const I18N = {
     badgeTron: 'TRC-20 en vivo',
     rootWalletLabel: 'Billetera Principal (Dirección Raíz)',
     rootWalletReason: 'Billetera central utilizada como base para el escaneo.',
-    rateLimitBadge: 'Límite de escaneo: <strong class="text-slate-800 dark:text-slate-200">Máx 25/min (~1 por 2.4s)</strong> · Caché 15 min',
+    rateLimitBadge: 'Límite de escaneo: <strong class="text-slate-800 dark:text-slate-200">1 por 10s</strong>',
     scanCooldown: 'Espera... (disponible en {sec}s)',
     rateLimitExceeded: 'Límite por minuto excedido (máx 25). Inténtelo de nuevo en unos segundos.',
     networkError: 'Error de red o servidor. Por favor, inténtelo de nuevo en unos segundos.',
@@ -589,7 +589,7 @@ const I18N = {
     badgeTron: 'TRC-20 онлайн',
     rootWalletLabel: 'Основной кошелек (Root Address)',
     rootWalletReason: 'Основной кошелек для текущего сканирования.',
-    rateLimitBadge: 'Лимит запросов: <strong class="text-slate-800 dark:text-slate-200">макс 25/мин (~1 раз в 2.4 сек)</strong> · Кэш 15 мин',
+    rateLimitBadge: 'Лимит запросов: <strong class="text-slate-800 dark:text-slate-200">1 раз в 10 сек</strong>',
     scanCooldown: 'Ожидание... (доступно через {sec}с)',
     rateLimitExceeded: 'Превышен лимит запросов в минуту (макс 25). Повторите попытку позже.',
     networkError: 'Ошибка сети или сервера. Пожалуйста, повторите попытку позже.',
@@ -1438,7 +1438,8 @@ function switchLanguage(lang) {
   document.title = dict.metaTitle;
   document.getElementById('txt-app-title').innerText = dict.appTitle;
   document.getElementById('txt-app-desc').innerText = dict.appDesc;
-  document.getElementById('txt-readonly-badge').innerText = dict.readonlyBadge;
+  const readonlyBadgeEl = document.getElementById('txt-readonly-badge');
+  if (readonlyBadgeEl) readonlyBadgeEl.innerText = dict.readonlyBadge;
   document.getElementById('txt-btn-coffee').innerText = dict.btnCoffee;
   document.getElementById('themeToggle').title = dict.themeToggleTitle;
   document.getElementById('txt-ad-banner').innerText = dict.adBanner;
@@ -1622,11 +1623,11 @@ function switchChain(chain) {
 }
 
 // ----------------------------------------------------------------------------
-// Rate Limit & Cooldown Manager (Max 25 queries / min = ~2.4s cooldown)
+// Rate Limit & Cooldown Manager (10s per query)
 // ----------------------------------------------------------------------------
 let isScanning = false;
 let cooldownTimerInterval = null;
-const SCAN_COOLDOWN_SECONDS = 2.4; // 60s / 25 queries = ~2.4s
+const SCAN_COOLDOWN_SECONDS = 10.0; // 1 scan per 10s
 let cooldownRemaining = 0;
 
 function startCooldown(durationSec = SCAN_COOLDOWN_SECONDS) {
@@ -2221,11 +2222,19 @@ function renderGraph(graphData) {
   const svg = d3.select("#graphSvg");
   svg.selectAll("*").remove();
 
+  if (!graphData || !Array.isArray(graphData.nodes) || graphData.nodes.length === 0) {
+    return;
+  }
+
   const containerEl = document.getElementById('graphContainer');
-  const width = containerEl.clientWidth || 540;
+  const width = Math.max(320, (containerEl ? containerEl.clientWidth : 0) || 540);
   const height = 350;
   const isDark = document.documentElement.classList.contains('dark');
   const dict = I18N[currentLanguage] || I18N.ko;
+
+  svg
+    .attr("viewBox", `0 0 ${width} ${height}`)
+    .attr("preserveAspectRatio", "xMidYMid meet");
 
   const allNonRootNodes = graphData.nodes.filter(n => n.type !== 'ROOT' && n.type !== 'HUB_ROOT');
   const filteredNodes = graphData.nodes.filter(n => {

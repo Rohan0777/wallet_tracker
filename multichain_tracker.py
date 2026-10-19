@@ -1670,7 +1670,34 @@ def analyze_solana(address):
         'volume_usd': total_recoverable,
         'radius': 26
     }]
-    links = []
+    # Ensure discovered native stake accounts are included in classified_wallets & graph
+    for s in overview.get('stake_accounts', []):
+        st_addr = s.get('address')
+        st_usd = s.get('value_usd', 0.0)
+        st_bal = s.get('balance_sol', 0.0)
+        if st_addr and not any(w.get('address') == st_addr for w in classified_wallets):
+            classified_wallets.insert(0, {
+                'address': st_addr,
+                'short_addr': f"{st_addr[:4]}...{st_addr[-4:]}",
+                'chain': 'solana',
+                'chain_badge': 'SOL',
+                'wallet_type': 'MY_STAKE_WALLET',
+                'is_my_wallet': True,
+                'is_cex': False,
+                'relation_score': 100,
+                'interaction_ratio': 1.0,
+                'evidence_tags': ['SOL 네이티브 스테이킹 (본인 인출권한 100%)', '회수 대상 자산'],
+                'can_pivot_scan': True,
+                'pivot_chain': 'solana',
+                'pivot_address': st_addr,
+                'my_tx_count': 1,
+                'lifetime_txs': 2,
+                'current_usd': st_usd,
+                'volume_usd': st_usd,
+                'label': f"네이티브 스테이킹 ({st_bal:.2f} SOL)",
+                'reason': f"내 지갑에서 위임한 공식 솔라나 스테이크 계정입니다 (${st_usd:.2f} USD). 팬텀/솔플레어 지갑의 Staking 메뉴에서 즉시 해제 및 환급 가능합니다.",
+                'recent_txs': []
+            })
 
     for w in classified_wallets[:22]:
         is_stake = (w['wallet_type'] == 'MY_STAKE_WALLET')
