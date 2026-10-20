@@ -1,0 +1,24 @@
+name: Auto Deploy to Raspberry Pi
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to Raspberry Pi
+    runs-on: self-hosted
+    steps:
+      - name: Checkout latest code
+        uses: actions/checkout@v4
+
+      - name: Deploy with Docker Compose
+        run: |
+          echo ">>> [Deploy] Deploying latest commit on Raspberry Pi..."
+          # Ensure cache directory exists
+          mkdir -p data_cache
+          # Rebuild and restart docker container
+          docker compose up -d --build
+          echo ">>> [Deploy] Successfully deployed and restarted container!"
+          docker ps --filter "name=crypto-detective"
