@@ -1856,7 +1856,7 @@ function renderWalletsList(wallets) {
     return;
   }
 
-  filtered.forEach(w => {
+  filtered.forEach((w, idx) => {
     const row = document.createElement('div');
     const isStake = w.wallet_type === 'MY_STAKE_WALLET';
     const dotColor = !w.is_my_wallet ? 'bg-slate-400' : (isStake ? 'bg-rose-500' : 'bg-amber-500');
@@ -1864,6 +1864,12 @@ function renderWalletsList(wallets) {
     const localizedLabel = localizeText(w.label, currentLanguage);
 
     const relScore = Number(w.relation_score !== undefined ? w.relation_score : (w.is_my_wallet ? 90 : 20));
+    const rankNum = Number(w.rank || (idx + 1));
+    const sentAmt = Number(w.sent_from_me || 0);
+    const recvAmt = Number(w.received_to_me || 0);
+    const netSentAmt = Number(w.net_sent !== undefined ? w.net_sent : (sentAmt - recvAmt));
+    const netSentUsd = Number(w.net_sent_usd !== undefined ? w.net_sent_usd : (w.volume_usd || 0));
+    const symBadge = (w.chain_badge || 'SOL').replace(/^🌉\s*/, '');
     const scoreBadgeClass = w.is_my_wallet
       ? 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/30'
       : 'bg-slate-500/15 text-slate-600 dark:text-slate-400 border-slate-500/25';
@@ -1874,22 +1880,23 @@ function renderWalletsList(wallets) {
     row.className = 'inner-box rounded-xl p-3 transition cursor-pointer flex items-center justify-between gap-3';
     row.innerHTML = `
       <div class="flex items-center gap-2.5 min-w-0">
+        <span class="w-5 h-5 rounded-md bg-indigo-600/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 font-mono font-bold text-[10px] flex items-center justify-center shrink-0">#${esc(rankNum)}</span>
         <span class="w-2.5 h-2.5 rounded-full ${dotColor} shrink-0"></span>
         <div class="min-w-0">
           <div class="flex items-center gap-1.5 flex-wrap">
             <span class="text-xs font-bold text-slate-900 dark:text-white truncate">${esc(localizedLabel)}</span>
             <span class="text-[9.5px] font-mono font-bold px-1.5 py-0.2 rounded border ${scoreBadgeClass}">연관도 ${esc(relScore)}%</span>
           </div>
-          <div class="flex items-center gap-2 text-[10px] text-slate-600 dark:text-slate-400 font-mono mt-0.5">
+          <div class="flex items-center gap-2 text-[10px] text-slate-600 dark:text-slate-400 font-mono mt-0.5 flex-wrap">
             <span>${esc(w.short_addr || (w.address || '').slice(0, 10))}</span>
             <span>·</span>
-            <span>생애 ${esc((w.lifetime_txs || 1).toLocaleString())}${dict.txCountLabel} (교류 ${esc(w.my_tx_count || 1)}회)</span>
+            <span>보낸합계 ${esc(sentAmt.toFixed(4).replace(/\.?0+$/, ''))} / 받은합계 ${esc(recvAmt.toFixed(4).replace(/\.?0+$/, ''))} (차이 +${esc(netSentAmt.toFixed(4).replace(/\.?0+$/, ''))} ${esc(symBadge)})</span>
           </div>
         </div>
       </div>
       <div class="text-right shrink-0 flex flex-col items-end gap-1">
-        <span class="text-xs font-bold font-mono tabular-nums ${w.current_usd > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400'}">
-          ${w.current_usd > 0 ? dict.balLabel + ' $' + Number(w.current_usd).toFixed(2) : (w.is_my_wallet ? dict.volLabel + ' $' + Number(w.volume_usd).toFixed(2) : 'CEX')}
+        <span class="text-xs font-bold font-mono tabular-nums ${w.current_usd > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}">
+          ${w.current_usd > 0 ? dict.balLabel + ' $' + Number(w.current_usd).toFixed(2) : '순송금 +$' + Number(Math.max(0, netSentUsd)).toFixed(2)}
         </span>
         <div class="flex items-center gap-1.5">
           ${canPivot && w.is_my_wallet ? `<button type="button" class="pivot-inline-btn px-2 py-0.5 rounded bg-indigo-600/15 hover:bg-indigo-600 hover:text-white text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 text-[10px] font-semibold transition">🔍 연관추적</button>` : ''}
@@ -2052,6 +2059,24 @@ function openBottomSheet(wallet) {
       <span class="text-slate-500 font-mono text-xs">$${Number(wallet.current_usd || 0).toFixed(2)}</span>
     `;
     posContainer.appendChild(emptyRow);
+  }
+
+  // Group Sum & Net Difference Row (Sent Sum vs Received Sum)
+  if (wallet.sent_from_me !== undefined || wallet.received_to_me !== undefined) {
+    const sentVal = Number(wallet.sent_from_me || 0);
+    const recvVal = Number(wallet.received_to_me || 0);
+    const netVal = Number(wallet.net_sent !== undefined ? wallet.net_sent : (sentVal - recvVal));
+    const symBadge = (wallet.chain_badge || 'SOL').replace(/^🌉\s*/, '');
+    const flowRow = document.createElement('div');
+    flowRow.className = 'inner-box flex items-center justify-between p-2.5 rounded-xl';
+    flowRow.innerHTML = `
+      <div>
+        <span class="text-slate-700 dark:text-slate-300 font-semibold text-xs block">그룹 합산 (보낸금액 - 받은금액 차이)</span>
+        <span class="text-[10px] font-mono text-slate-500 dark:text-slate-400">보낸 합계 ${esc(sentVal.toFixed(4).replace(/\.?0+$/, ''))} · 받은 합계 ${esc(recvVal.toFixed(4).replace(/\.?0+$/, ''))} ${esc(symBadge)}</span>
+      </div>
+      <span class="font-mono font-bold text-xs text-amber-700 dark:text-amber-400 tabular-nums">+${esc(netVal.toFixed(4).replace(/\.?0+$/, ''))} ${esc(symBadge)}</span>
+    `;
+    posContainer.appendChild(flowRow);
   }
 
   // Always explicitly show External Protocol Row (Blank '—' if null!)
@@ -2736,17 +2761,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateAadsTheme() {
     const isDark = document.documentElement.classList.contains('dark');
-    const iframe728 = document.getElementById('aads-728-iframe');
+    const iframe728Sheet = document.getElementById('aads-728-sheet-iframe');
     const iframe300 = document.getElementById('aads-300-iframe');
-    const iframe300TopMobile = document.getElementById('aads-300-top-mobile-iframe');
     if (isDark) {
-      if (iframe728) iframe728.src = 'https://ad.a-ads.com/2459088/?size=728x90&background_color=131722&title_color=818CF8&title_hover_color=1C2230&text_color=CBD5E1&link_color=1C2230&link_hover_color=1C2230';
+      if (iframe728Sheet) iframe728Sheet.src = 'https://ad.a-ads.com/2459088/?size=728x90&background_color=131722&title_color=818CF8&title_hover_color=1C2230&text_color=CBD5E1&link_color=1C2230&link_hover_color=1C2230';
       if (iframe300) iframe300.src = 'https://ad.a-ads.com/2459087/?size=300x250&background_color=131722&title_color=818CF8&title_hover_color=1C2230&text_color=CBD5E1&link_color=1C2230&link_hover_color=1C2230';
-      if (iframe300TopMobile) iframe300TopMobile.src = 'https://ad.a-ads.com/2459087/?size=300x250&background_color=131722&title_color=818CF8&title_hover_color=1C2230&text_color=CBD5E1&link_color=1C2230&link_hover_color=1C2230';
     } else {
-      if (iframe728) iframe728.src = 'https://ad.a-ads.com/2459088/?size=728x90&background_color=CBD5E1&title_color=4F46E5&title_hover_color=312E81&text_color=0F172A&link_color=4F46E5&link_hover_color=312E81';
+      if (iframe728Sheet) iframe728Sheet.src = 'https://ad.a-ads.com/2459088/?size=728x90&background_color=CBD5E1&title_color=4F46E5&title_hover_color=312E81&text_color=0F172A&link_color=4F46E5&link_hover_color=312E81';
       if (iframe300) iframe300.src = 'https://ad.a-ads.com/2459087/?size=300x250&background_color=CBD5E1&title_color=4F46E5&title_hover_color=312E81&text_color=0F172A&link_color=4F46E5&link_hover_color=312E81';
-      if (iframe300TopMobile) iframe300TopMobile.src = 'https://ad.a-ads.com/2459087/?size=300x250&background_color=CBD5E1&title_color=4F46E5&title_hover_color=312E81&text_color=0F172A&link_color=4F46E5&link_hover_color=312E81';
     }
   }
 

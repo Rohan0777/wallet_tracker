@@ -258,43 +258,6 @@
       </div>
     </header>
 
-    <!-- Top 728x90 Leaderboard Banner (Desktop/Tablet) -->
-    <div class="px-4 sm:px-6 pt-3 hidden md:flex justify-center">
-      <div class="panel-window rounded-2xl p-2.5 flex flex-col items-center justify-center w-full shadow-sm">
-        <div class="w-full flex items-center justify-between text-[10px] pb-1.5 px-1 border-b border-slate-300 dark:border-white/[0.07] text-slate-500 font-mono">
-          <div class="flex items-center gap-1.5">
-            <span class="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-600 text-white font-semibold">SPONSOR</span>
-            <span class="font-bold text-slate-800 dark:text-slate-200">추천 Web3 파트너</span>
-          </div>
-          <span class="text-slate-500 font-mono">A-Ads Network (728x90)</span>
-        </div>
-        <div class="pt-2 w-[728px] h-[90px] overflow-hidden flex justify-center">
-          <!-- BEGIN AADS AD UNIT 2459088 -->
-          <iframe id="aads-728-iframe" data-aa='2459088' src='https://ad.a-ads.com/2459088/?size=728x90&background_color=131722&title_color=818CF8&title_hover_color=1C2230&text_color=CBD5E1&link_color=1C2230&link_hover_color=1C2230'
-                  style='border:0; padding:0; width:728px; height:90px; overflow:hidden; display:block; margin:auto; background-color:transparent;'></iframe>
-          <!-- END AADS AD UNIT 2459088 -->
-        </div>
-      </div>
-    </div>
-
-    <!-- Top 300x250 Banner (Mobile Only) -->
-    <div class="px-4 pt-3 flex md:hidden justify-center">
-      <div class="panel-window rounded-2xl p-2.5 flex flex-col items-center justify-center w-full max-w-[340px] shadow-sm">
-        <div class="w-full flex items-center justify-between text-[10px] pb-1.5 px-1 border-b border-slate-300 dark:border-white/[0.07] text-slate-500 font-mono">
-          <div class="flex items-center gap-1.5">
-            <span class="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-600 text-white font-semibold">SPONSOR</span>
-            <span class="font-bold text-slate-800 dark:text-slate-200">추천 Web3 파트너</span>
-          </div>
-          <span class="text-slate-500 font-mono">A-Ads Network (300x250)</span>
-        </div>
-        <div class="pt-2 w-[300px] h-[250px] overflow-hidden flex justify-center">
-          <!-- BEGIN AADS AD UNIT 2459087 MOBILE -->
-          <iframe id="aads-300-top-mobile-iframe" data-aa='2459087' src='https://ad.a-ads.com/2459087/?size=300x250&background_color=131722&title_color=818CF8&title_hover_color=1C2230&text_color=CBD5E1&link_color=1C2230&link_hover_color=1C2230'
-                  style='border:0; padding:0; width:300px; height:250px; overflow:hidden; display:block; margin:auto; background-color:transparent;'></iframe>
-          <!-- END AADS AD UNIT 2459087 MOBILE -->
-        </div>
-      </div>
-    </div>
 
     <!-- Top Sponsored Bar -->
     <div class="px-4 sm:px-6 pt-2.5">
@@ -725,6 +688,25 @@
 
         <!-- Tier 3: Protocol Encyclopedia OR Blank + Sponsored Ad Slot -->
         <div id="sheetProtocolContainer" class="panel-window rounded-2xl p-4 space-y-3"></div>
+
+        <!-- Tier 4: Bottom 728x90 A-Ads Banner Inside Wallet Detail View ("내 지갑보기" 하단 배너) -->
+        <div class="panel-window rounded-2xl p-2.5 flex flex-col items-center justify-center w-full shadow-sm">
+          <div class="w-full flex items-center justify-between text-[10px] pb-1.5 px-1 border-b border-slate-300 dark:border-white/[0.07] text-slate-500 font-mono">
+            <div class="flex items-center gap-1.5">
+              <span class="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-600 text-white font-semibold">SPONSOR</span>
+              <span class="font-bold text-slate-800 dark:text-slate-200">추천 Web3 파트너</span>
+            </div>
+            <span class="text-slate-500 font-mono">A-Ads Network (728x90)</span>
+          </div>
+          <div class="pt-2 w-full overflow-x-auto no-scrollbar flex justify-center">
+            <div class="w-[728px] h-[90px] shrink-0 overflow-hidden flex justify-center">
+              <!-- BEGIN AADS AD UNIT 2459088 SHEET -->
+              <iframe id="aads-728-sheet-iframe" data-aa='2459088' src='https://ad.a-ads.com/2459088/?size=728x90&background_color=131722&title_color=818CF8&title_hover_color=1C2230&text_color=CBD5E1&link_color=1C2230&link_hover_color=1C2230'
+                      style='border:0; padding:0; width:728px; height:90px; overflow:hidden; display:block; margin:auto; background-color:transparent;'></iframe>
+              <!-- END AADS AD UNIT 2459088 SHEET -->
+            </div>
+          </div>
+        </div>
 
       </div>
     </div>

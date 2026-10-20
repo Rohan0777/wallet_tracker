@@ -1063,6 +1063,106 @@ class TestV90FinalSuite(unittest.TestCase):
             self.assertTrue(res["stage_status"]["transactions"])
 
 
+
+    def test_v9_2_ad_banner_layout_and_1000tx_grouped_net_sent_top10_ranking(self):
+        """
+        Verifies:
+        1. Top 300x250 A-Ads banner (aads-300-top-mobile-iframe) is removed; 300x250 stays only at bottom (aads-300-iframe).
+        2. 728x90 A-Ads banner (2459088) is placed below the wallet cluster view (aads-728-iframe) and inside the wallet detail bottom sheet (aads-728-sheet-iframe).
+        3. MAX_TX_SCAN_LIMIT == 1000 and TOP_DISPLAY_WALLETS_LIMIT == 10.
+        4. Counterparties are grouped by address (summing sent and recv), CEX/routers and wallets with sent <= recv are excluded,
+           and the top 10 wallets where sent > recv are ranked by net difference (sent - recv) descending.
+        """
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(base_dir, "static", "index.html"), "r", encoding="utf-8") as f:
+            html_code = f.read()
+        with open(os.path.join(base_dir, "static", "app.js"), "r", encoding="utf-8") as f:
+            js_code = f.read()
+
+        # 1 & 2. Banner checks
+        self.assertNotIn("aads-300-top-mobile-iframe", html_code)
+        self.assertNotIn("aads-300-top-mobile-iframe", js_code)
+        self.assertIn("aads-300-iframe", html_code)
+        self.assertNotIn("aads-728-iframe", html_code)
+        self.assertIn("aads-728-sheet-iframe", html_code)
+        self.assertIn("aads-728-sheet-iframe", js_code)
+
+        # 3. Constants check
+        self.assertEqual(multichain_tracker.MAX_TX_SCAN_LIMIT, 1000)
+        self.assertEqual(multichain_tracker.TOP_DISPLAY_WALLETS_LIMIT, 10)
+
+        # 4. Grouping, CEX exclusion, sent > recv filter, and Top 10 net_sent ranking check
+        mock_counterparts = {}
+        # Add 12 valid personal wallets with varying net_sent = sent - recv
+        for i in range(1, 13):
+            addr = f"0x00000000000000000000000000000000000000{i:02x}"
+            mock_counterparts[addr] = {
+                "sent": float(i * 2.0),
+                "recv": float(i * 0.5),  # net_sent = 1.5 * i
+                "count": 2,
+                "is_contract": False,
+                "name": None,
+                "txs": []
+            }
+        # Add a mixed-case duplicate for wallet 12 to test address grouping sum
+        mock_counterparts["0x000000000000000000000000000000000000000C"] = {
+            "sent": 5.0,
+            "recv": 1.0,  # adds +4.0 net_sent to wallet 0x...0c (18.0 + 4.0 = 22.0)
+            "count": 1,
+            "is_contract": False,
+            "name": None,
+            "txs": []
+        }
+        # Add a CEX hotwallet (Binance 14) with huge sent -> must be filtered out!
+        mock_counterparts["0x28c6c06298d514db089934071355e5743bf21d60"] = {
+            "sent": 500.0,
+            "recv": 0.0,
+            "count": 10,
+            "is_contract": False,
+            "name": "Binance 14",
+            "txs": []
+        }
+        # Add a wallet where recv > sent (net_sent < 0) -> must be filtered out!
+        mock_counterparts["0x0000000000000000000000000000000000000099"] = {
+            "sent": 1.0,
+            "recv": 10.0,
+            "count": 2,
+            "is_contract": False,
+            "name": None,
+            "txs": []
+        }
+
+        def mock_evm_rpc(url, method, params):
+            if method == "eth_getBalance":
+                return "0xde0b6b3a7640000"  # 1.0 ETH
+            if method == "eth_getTransactionCount":
+                return "0x5"  # 5 txs
+            if method == "eth_getCode":
+                return "0x"
+            return "0x0"
+
+        with unittest.mock.patch.object(multichain_tracker, "evm_rpc", side_effect=mock_evm_rpc), \
+             unittest.mock.patch.object(multichain_tracker, "fetch_blockscout_tokens", return_value=([], True)), \
+             unittest.mock.patch.object(multichain_tracker, "fetch_etherscan_or_bscscan_data", return_value=(mock_counterparts, 1000, True)):
+            res = multichain_tracker.analyze_evm_live("ethereum", TEST_EVM_ADDR_LOWER)
+            wallets = res["classified_wallets"]
+            # Must cap at 10 wallets
+            self.assertEqual(len(wallets), 10)
+            # CEX hotwallet and recv > sent wallet must not be in results
+            addrs_lower = [w["address"].lower() for w in wallets]
+            self.assertNotIn("0x28c6c06298d514db089934071355e5743bf21d60", addrs_lower)
+            self.assertNotIn("0x0000000000000000000000000000000000000099", addrs_lower)
+            # Top ranked (#1) must be 0x...0c with grouped sent=29.0, recv=7.0, net_sent=22.0
+            self.assertEqual(wallets[0]["address"].lower(), "0x000000000000000000000000000000000000000c")
+            self.assertAlmostEqual(wallets[0]["sent_from_me"], 29.0)
+            self.assertAlmostEqual(wallets[0]["received_to_me"], 7.0)
+            self.assertAlmostEqual(wallets[0]["net_sent"], 22.0)
+            self.assertEqual(wallets[0]["rank"], 1)
+            # Strictly descending net_sent order across all 10 wallets
+            net_sents = [w["net_sent"] for w in wallets]
+            self.assertEqual(net_sents, sorted(net_sents, reverse=True))
+
+
 if __name__ == "__main__":
     unittest.main()
 
